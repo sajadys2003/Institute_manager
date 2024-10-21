@@ -10,7 +10,6 @@ from datetime import date
 from decimal import Decimal
 
 
-
 class Base(DeclarativeBase):
     pass
 
@@ -19,9 +18,9 @@ class Role(Base):
     __tablename__ = "roles"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
-    is_enabled: Mapped[bool] = mapped_column(default=True)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    name: Mapped[str]
+    is_enabled: Mapped[bool]
+    record_date: Mapped[datetime]
 
     users: Mapped[list["User"]] = relationship(
         back_populates="role"
@@ -41,10 +40,10 @@ class Permission(Base):
     __tablename__ = "permissions"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
-    parent_id = mapped_column(ForeignKey("permissions.id"), default=0)
+    name: Mapped[str]
+    parent_id = mapped_column(ForeignKey("permissions.id"))
     is_enabled: Mapped[bool] = mapped_column(default=True)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     children: Mapped[list["Permission"]] = relationship(
         back_populates="parent"
@@ -72,9 +71,9 @@ class PermissionGroup(Base):
     __tablename__ = "permission_groups"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
     is_enabled: Mapped[bool] = mapped_column(default=True)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     permission_group_defines: Mapped[list["PermissionGroupDefine"]] = relationship(
         back_populates="permission_group"
@@ -94,7 +93,7 @@ class PermissionGroup(Base):
 
 
 class PermissionGroupDefine(Base):
-    __tablename__ = "permission_group_define"
+    __tablename__ = "permission_group_defines"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     permission_id = mapped_column(ForeignKey("permissions.id"), nullable=False)
@@ -120,21 +119,21 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    gender: Mapped[str]
     first_name: Mapped[str]
     last_name: Mapped[str]
+    gender: Mapped[str]
     father_name: Mapped[str]
     date_of_birth: Mapped[date]
     national_code: Mapped[str]
     phone_number: Mapped[str]
-    role_id = mapped_column(ForeignKey("roles.id"), default=0)
+    role_id = mapped_column(ForeignKey("roles.id"))
     recruitment_date: Mapped[datetime]
     is_super_admin: Mapped[bool]
     is_panel_user: Mapped[bool]
-    permission_group_id = mapped_column(ForeignKey("permission_groups.id"), default=0)
+    permission_group_id = mapped_column(ForeignKey("permission_groups.id"))
     is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=True)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     role: Mapped["Role"] = relationship(
         back_populates="users"
@@ -212,9 +211,9 @@ class User(Base):
         return (
             f"User("
             f"id={self.id!r}, "
-            f"gender={self.gender!r}, "
             f"first_name={self.first_name!r}, "
             f"last_name={self.last_name!r}, "
+            f"gender={self.gender!r}, "
             f"father_name={self.father_name!r}, "
             f"date_of_birth={self.date_of_birth!r}, "
             f"national_code={self.national_code!r}, "
@@ -234,9 +233,9 @@ class LessonGroup(Base):
     __tablename__ = "lesson_groups"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
     is_enabled: Mapped[bool] = mapped_column(default=True)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     lessons: Mapped[list["Lesson"]] = relationship(
         back_populates="lesson_group"
@@ -259,10 +258,10 @@ class Lesson(Base):
     __tablename__ = "lessons"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
     lesson_group_id = mapped_column(ForeignKey("lesson_groups.id"), nullable=False)
     is_enabled: Mapped[bool] = mapped_column(default=True)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     lesson_group: Mapped["LessonGroup"] = relationship(
         back_populates="lessons"
@@ -287,11 +286,11 @@ class Course(Base):
     __tablename__ = "courses"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
     # double check ...
     lesson_id = mapped_column(ForeignKey("lessons.id"))
     is_enabled: Mapped[bool] = mapped_column(default=True)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     lesson: Mapped["Lesson"] = relationship(
         back_populates="courses"
@@ -326,7 +325,7 @@ class CoursePrice(Base):
     date: Mapped[datetime]
     duration: Mapped[float]
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     course: Mapped["Course"] = relationship(
         back_populates="course_prices"
@@ -350,7 +349,7 @@ class CoursePrice(Base):
 
 
 class CoursePrerequisite(Base):
-    __tablename__ = "course_prerequisite"
+    __tablename__ = "course_prerequisites"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     main_course_id = mapped_column(ForeignKey("courses.id"), nullable=False)
@@ -378,10 +377,10 @@ class Building(Base):
     __tablename__ = "buildings"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
     location: Mapped[str]
     is_enabled: Mapped[bool] = mapped_column(default=True)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     classrooms: Mapped[list["Classroom"]] = relationship(
         back_populates="building"
@@ -402,13 +401,13 @@ class Classroom(Base):
     __tablename__ = "classrooms"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
     building_id = mapped_column(ForeignKey("buildings.id"), nullable=False)
     floor: Mapped[int]
     capacity: Mapped[int]
     lesson_group_id = mapped_column(ForeignKey("lesson_groups.id"))
     is_enabled: Mapped[bool] = mapped_column(default=True)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     building: Mapped["Building"] = relationship(
         back_populates="classrooms"
@@ -446,7 +445,7 @@ class Presentation(Base):
     end_date: Mapped[date]
     is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     course: Mapped["Course"] = relationship(
         back_populates="presentations"
@@ -497,7 +496,7 @@ class SelectedPresentation(Base):
     grade: Mapped[float] = mapped_column(nullable=True)
     is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     presentation: Mapped["Presentation"] = relationship(
         back_populates="selected_presentations"
@@ -539,7 +538,7 @@ class PresentationSession(Base):
     is_extra: Mapped[bool] = mapped_column(default=False)
     is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     presentation: Mapped["Presentation"] = relationship(
         back_populates="presentation_sessions"
@@ -580,7 +579,7 @@ class RollCall(Base):
     delay: Mapped[int] = mapped_column(nullable=True)
     comment: Mapped[str] = mapped_column(nullable=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     presentation_session: Mapped["PresentationSession"] = relationship(
         back_populates="roll_calls"
@@ -612,9 +611,9 @@ class SurveyCategory(Base):
     __tablename__ = "survey_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
     is_enabled: Mapped[bool] = mapped_column(default=True)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     presentation_surveys: Mapped[list["PresentationSurvey"]] = relationship(
         back_populates="survey_category"
@@ -638,7 +637,7 @@ class PresentationSurvey(Base):
     presentation_id = mapped_column(ForeignKey("presentations.id"), nullable=False)
     survey_category_id = mapped_column(ForeignKey("survey_categories.id"), nullable=False)
     score: Mapped[int]
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     student: Mapped["User"] = relationship(
         back_populates="student_of_presentation_surveys"
@@ -670,7 +669,7 @@ class Exam(Base):
     price: Mapped[Decimal]
     is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     course: Mapped["Course"] = relationship(
         back_populates="exam"
@@ -702,7 +701,7 @@ class ExamSchedule(Base):
     start_date: Mapped[datetime]
     is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     exam: Mapped["Exam"] = relationship(
         back_populates="exam_schedules"
@@ -735,7 +734,7 @@ class SelectedExam(Base):
     is_participated: Mapped[bool]
     grade: Mapped[Decimal] = mapped_column(nullable=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     exam_schedule: Mapped["ExamSchedule"] = relationship(
         back_populates="selected_exams"
@@ -769,7 +768,7 @@ class FinancialCategory(Base):
     __tablename__ = "financial_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
     is_enabled: Mapped[bool] = mapped_column(default=True)
 
     def __repr__(self) -> str:
@@ -785,7 +784,7 @@ class PayCategory(Base):
     __tablename__ = "pay_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
     is_enabled: Mapped[bool] = mapped_column(default=True)
 
     financial_transactions: Mapped[list["FinancialTransaction"]] = relationship(
@@ -808,14 +807,14 @@ class FinancialTransaction(Base):
     user_id = mapped_column(ForeignKey("users.id"), nullable=False)
     financial_category_id = mapped_column(ForeignKey("financial_categories.id"), nullable=False)
     amount: Mapped[Decimal]
-    presentation_id = mapped_column(ForeignKey("presentations.id"), default=0)
-    selected_presentation_id = mapped_column(ForeignKey("selected_presentations.id"), default=0)
-    selected_exam_id = mapped_column(ForeignKey("selected_exams.id"), default=0)
+    presentation_id = mapped_column(ForeignKey("presentations.id"))
+    selected_presentation_id = mapped_column(ForeignKey("selected_presentations.id"))
+    selected_exam_id = mapped_column(ForeignKey("selected_exams.id"))
     transaction_date: Mapped[datetime] = mapped_column(default=datetime.now())
     pay_reference: Mapped[str]
     pay_category_id = mapped_column(ForeignKey("pay_categories.id"), nullable=False)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     user: Mapped["User"] = relationship(
         back_populates="user_of_financial_transactions",
@@ -876,7 +875,7 @@ class Login(Base):
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     user_id = mapped_column(ForeignKey("users.id"), nullable=False)
     last_login_date: Mapped[datetime]
-    record_date: Mapped[datetime] = mapped_column(default=datetime.now())
+    record_date: Mapped[datetime]
 
     user: Mapped["User"] = relationship(
         back_populates="user_of_logins"
