@@ -1,13 +1,9 @@
 from pydantic import BaseModel
-
 from datetime import datetime
 from datetime import date
 
-"""
-define pydantic models for data validation. to validate 'Request' and 'Response' body. 
-all fields in 'Update' models are optional.
-'Foreign Keys' are nullable.
-"""
+
+# define pydantic models to validate 'Request' and 'Response' body.
 
 
 # roles
@@ -26,6 +22,7 @@ class RoleOut(BaseModel):
     name: str
     is_enabled: bool
     record_date: datetime
+    recorder_id: int | None
 
 
 # permissions
@@ -46,6 +43,7 @@ class PermissionOut(BaseModel):
     name: str
     parent_id: int | None
     is_enabled: bool
+    recorder_id: int | None
     record_date: datetime
 
 
@@ -67,7 +65,7 @@ class PermissionGroupOut(BaseModel):
     record_date: datetime
 
 
-# permission_group_defines
+# permission_group_define
 class PermissionGroupDefineIn(BaseModel):
     permission_id: int
     permission_group_id: int
@@ -99,7 +97,6 @@ class UserIn(BaseModel):
     is_panel_user: bool
     permission_group_id: int | None = None
     is_enabled: bool | None = True
-    recorder_id: int | None = None
 
 
 class UserUpdate(BaseModel):
@@ -116,8 +113,6 @@ class UserUpdate(BaseModel):
     is_panel_user: bool | None = None
     permission_group_id: int | None = None
     is_enabled: bool | None = None
-    recorder_id: int | None = None
-
 
 class UserOut(BaseModel):
     id: int
@@ -132,25 +127,34 @@ class UserOut(BaseModel):
     recruitment_date: datetime
     is_super_admin: bool | None
     is_panel_user: bool
-    permission_group_id: int
+    permission_group_id: int | None
     is_enabled: bool
     recorder_id: int | None
     record_date: datetime
 
 
-# lesson_groups
-class LessonGroupIn(BaseModel):
-    name: str
-    is_enabled: bool | None = True
+# response models
+
+class RoleResponse(RoleOut):
+    recorder: UserOut | None
 
 
-class LessonGroupUpdate(BaseModel):
-    name: str | None = None
-    is_enabled: bool | None = None
+class PermissionResponse(PermissionOut):
+    parent: PermissionOut | None
+    recorder: UserOut | None
 
 
-class LessonGroupOut(BaseModel):
-    id: int
-    name: str
-    is_enabled: bool
-    record_date: datetime
+class PermissionGroupResponse(PermissionOut):
+    recorder: UserOut | None
+
+
+class PermissionGroupDefineResponse(PermissionGroupDefineOut):
+    permission: PermissionOut
+    permission_group: PermissionGroupOut
+    recorder: UserOut | None
+
+
+class UserResponse(UserOut):
+    role: RoleOut | None
+    permission_group: PermissionGroupOut | None
+    recorder: UserOut | None
