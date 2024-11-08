@@ -12,7 +12,7 @@ router = APIRouter(prefix="/permissions")
 
 
 @router.get("/", response_model=list[PermissionResponse])
-async def get_all(
+async def get_all_permissions(
         db: SessionDep,
         commons: CommonsDep
 ):
@@ -24,12 +24,12 @@ async def get_all(
     else:
         criteria = Permission.is_enabled
 
-    stored_records = db.query(Permission).where(criteria).offset(commons.offset).limit(commons.limit).all()
-    return stored_records
+    stored_records = db.query(Permission).where(criteria).offset(commons.offset).limit(commons.limit)
+    return stored_records.all()
 
 
 @router.get(path="/{permission_id}", response_model=PermissionResponse)
-async def get_by_id(
+async def get_permission_by_id(
         db: SessionDep,
         permission_id: int
 ):
@@ -40,17 +40,19 @@ async def get_by_id(
     stored_record = db.query(Permission).where(criteria).scalar()
 
     if not stored_record:
-        HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="Not found")
     return stored_record
 
 
 @router.post(path="/", response_model=PermissionResponse, status_code=status.HTTP_201_CREATED)
-async def create(
+async def create_permission(
         db: SessionDep,
         data: PermissionIn
 ):
-    if not db.get(Permission, data.parent_id):
-        raise HTTPException
+    if data.parent_id:
+        if not db.get(Permission, data.parent_id):
+            raise HTTPException(status_code=404, detail="parent_id did not match")
+
     data_dict = data.model_dump()
     data_dict.update({"recorder_id": 1, "record_date": datetime.now()})
     new_record = Permission(**data_dict)
@@ -60,22 +62,12 @@ async def create(
 
 
 @router.put(path="/{permission_id}", response_model=PermissionResponse)
-async def update(
+async def update_permission(
         db: SessionDep,
         permission_id: int,
         data: PermissionUpdate,
 ):
-    criteria = and_(
-        Permission.id == permission_id,
-        Permission.is_enabled
-    )
-    stored_record = db.query(Permission).where(criteria).scalar()
-    if not stored_record:
-        raise HTTPException(status_code=404, detail="Not found")
-
-    if parent_id := data.parent_id:
-        if not db.get(Permission, parent_id):
-            raise HTTPException()
+    stored_record = await get_permission_by_id(db, permission_id)
 
     data_dict = data.model_dump(exclude_unset=True)
     data_dict.update({"recorder_id": 1, "record_date": datetime.now()})
@@ -88,16 +80,10 @@ async def update(
 
 
 @router.delete(path="/{permission_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete(
+async def delete_permission(
         db: SessionDep,
         permission_id: int,
 ):
-    criteria = and_(
-        Permission.id == permission_id,
-        Permission.is_enabled
-    )
-    stored_record = db.query(Permission).where(criteria).scalar()
-    if not stored_record:
-        raise HTTPException(status_code=404, detail="Not found")
+    stored_record = await get_permission_by_id(db, permission_id)
     stored_record.is_enabled = False
     db.commit()

@@ -1,3 +1,5 @@
+from base64 import decode
+
 from sqlalchemy import create_engine
 from app.models import Base
 from sqlalchemy.orm import Session
@@ -19,14 +21,20 @@ def get_session():
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
-class CommonQueryParams:
-    def __init__(self, q: str | None = None, page: int = 1, size: int = 20):
-        self.q = q.strip() if q else None
+class Pagination:
+    def __init__(self, page: int = 1, size: int = 20):
         self.page = page - 1
         self.limit = size
         self.offset = self.page * self.limit
 
 
+PageDep = Annotated[Pagination, Depends(Pagination)]
+
+
+class CommonQueryParams(Pagination):
+    def __init__(self, q: str | None = None, page: int = 1, size: int = 20):
+        super().__init__(page, size)
+        self.q = q.strip() if q else None
+
 
 CommonsDep = Annotated[CommonQueryParams, Depends(CommonQueryParams)]
-

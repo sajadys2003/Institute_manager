@@ -1,12 +1,12 @@
+from fastapi import HTTPException, status
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
-
+from inspect import currentframe
 from datetime import datetime
 from datetime import date
-
 from decimal import Decimal
 
 
@@ -281,10 +281,20 @@ class User(Base):
     )
 
     @property
-    def permission_names(self) -> list[str]:
+    def permissions_list(self) -> list[str]:
         if pg := self.permission_group:
             if pgd := pg.permission_group_defines:
                 return [p.permission.name for p in pgd]
+
+    def authorize(self):
+        operation = currentframe().f_back.f_code.co_name
+        if operation not in self.permissions_list:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not enough permissions"
+            )
+        else:
+            return self
 
     def __repr__(self) -> str:
         return (

@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Annotated
 import jwt
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from pydantic import BaseModel, ValidationError
@@ -9,6 +9,7 @@ from jwt.exceptions import InvalidTokenError
 from app.dependencies import SessionDep
 from app.models import User
 from sqlalchemy import and_
+from inspect import currentframe
 
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
@@ -17,17 +18,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-app = FastAPI()
+router = APIRouter()
 
 
 class Token(BaseModel):
     access_token: str
     token_type: str
-
-
-class CurrentUser(BaseModel):
-    user: User
-    permissions: list[str]
 
 
 def verify_password(plain_password, hashed_password):
@@ -43,17 +39,16 @@ def authenticate_user(db: SessionDep, username: str, password: str) -> User:
     return user
 
 
-def create_token(sub: str, permissions: list[str]):
+def create_token(sub: str):
     payload = {
         "sub": sub,
-        "permissions": permissions,
         "exp": datetime.now() + timedelta(ACCESS_TOKEN_EXPIRE_MINUTES)
     }
     encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return Token(access_token=encoded_jwt, token_type="bearer")
 
 
-@app.post("/token")
+@router.post("/token")
 async def login_for_access_token(
         db: SessionDep,
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
@@ -62,25 +57,21 @@ async def login_for_access_token(
 
     if authenticated_user:
         token = create_token(
-            sub=authenticated_user.phone_number,
-            permissions=authenticated_user.permission_names
+            sub=authenticated_user.phone_number
         )
         return token
 
 
-async def decode_token(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
-    return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-
-
 async def get_current_user(
         db: SessionDep,
-        payload: Annotated[dict, Depends(decode_token)]
+        token: Annotated[str, Depends(oauth2_scheme)]
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials"
     )
     try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload["sub"]
         criteria = and_(User.phone_number == username, User.is_enabled)
         user = db.query(User).where(criteria).scalar()
@@ -90,4 +81,21 @@ async def get_current_user(
     except (InvalidTokenError, ValidationError):
         raise credentials_exception
 
-    return CurrentUser(user=user, permissions=payload["permission_names"])
+    return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def authorize_user(current_user: CurrentUser):
+    operation = currentframe().f_back.f_code.co_name
+    if operation not in current_user.permissions_list:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not enough permissions"
+        )
+    else:
+        return current_user
+
+
+AuthorizedUser = Annotated[User, Depends(authorize_user)]
