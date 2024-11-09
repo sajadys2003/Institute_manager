@@ -11,8 +11,8 @@ from app.routers.authentication import AuthorizedUser
 router = APIRouter()
 
 
-# Endpoints of course price
-# add all Endpoints for course price
+# Endpoints of roll call
+# add all Endpoints for roll call
 # -------------------------------------------------------------------------------------------------------
 
 
