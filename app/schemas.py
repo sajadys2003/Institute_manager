@@ -160,3 +160,17 @@ class UserResponse(UserOut):
     role: RoleOut | None
     permission_group: PermissionGroupOut | None
     recorder: UserOut | None
+
+
+class LessonsGroup(BaseModel):
+    name: str
+    is_enabled: bool
+    recorder_id = int
+    record_date: datetime
+
+
+class LessonsGroupResponse(BaseModel):
+    name: str
+    is_enabled: bool
+    recorder = UserOut
+    record_date: datetime
