@@ -174,3 +174,19 @@ class LessonsGroupResponse(BaseModel):
     is_enabled: bool
     recorder = UserOut
     record_date: datetime
+
+
+class Lesson(BaseModel):
+    name: str
+    lesson_group_id = int
+    is_enabled: bool
+    recorder_id = int
+    record_date: datetime
+
+
+class LessonResponse(BaseModel):
+    name: str
+    lesson_group = LessonsGroup
+    is_enabled: bool
+    recorder = UserOut
+    record_date: datetime

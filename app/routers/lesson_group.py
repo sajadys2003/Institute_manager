@@ -29,7 +29,7 @@ async def create_lessons_group(lesson_group: LessonsGroup, db: Session = Depends
 
 
 @router.get("/lessons_group", tags=["lessons_group"], response_model=list[LessonsGroupResponse])
-async def get_lessons_group(user_auth: AuthorizedUser, db: Session = Depends(get_session), params=CommonsDep):
+async def get_lessons_groups(user_auth: AuthorizedUser, db: Session = Depends(get_session), params=CommonsDep):
     if user_auth:
 
         if params.q:
