@@ -164,7 +164,6 @@ class UserResponse(UserOut):
 class LessonsGroup(BaseModel):
     name: str
     is_enabled: bool
-    recorder_id: int
 
 
 class LessonsGroupResponse(BaseModel):
@@ -173,11 +172,15 @@ class LessonsGroupResponse(BaseModel):
     recorder: UserOut
 
 
+class LessonsGroupUpdate(BaseModel):
+    name: str | None
+    is_enabled: bool | None
+
+
 class Lesson(BaseModel):
     name: str
     lesson_group_id: int
     is_enabled: bool
-    recorder_id: int
 
 
 class LessonResponse(BaseModel):
@@ -187,11 +190,16 @@ class LessonResponse(BaseModel):
     recorder: UserOut
 
 
+class LessonUpdate(BaseModel):
+    name: str | None
+    lesson_group_id: int | None
+    is_enabled: bool | None
+
+
 class Course(BaseModel):
     name: str
     lesson_id: int
     is_enabled: bool
-    recorder_id: int
 
 
 class CourseResponse(BaseModel):
@@ -201,10 +209,31 @@ class CourseResponse(BaseModel):
     recorder: UserOut
 
 
+class CourseUpdate(BaseModel):
+    name: str | None
+    lesson_id: int | None
+    is_enabled: bool | None
+
+
 class CoursePrice(BaseModel):
     course_id: int
     public_price: float
     private_price: float
+    duration: float
+
+
+class CoursePriceResponse(BaseModel):
+    course: Course
+    public_price: float
+    private_price: float
     date: datetime
     duration: float
-    recorder_id: int
+    recorder: UserOut
+
+
+class CoursePriceUpdate(BaseModel):
+    course_id: int | None
+    public_price: float | None
+    private_price: float | None
+    duration: float | None
+

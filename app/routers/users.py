@@ -17,16 +17,18 @@ router = APIRouter()
 
 
 @router.post("/users/create", tags=["users"], response_model=UserResponse)
-async def create_user(user: UserIn, db: Session = Depends(get_session)):
-    user_dict = user.dict()
-    user_dict["record_date"] = datetime.now()
-    user_dict["hashed_password"] = get_password_hash(user.password)
-    db_user = User(**user_dict)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+async def create_user(user_auth: AuthorizedUser, user: UserIn, db: Session = Depends(get_session)):
+    if user_auth:
+        user_dict = user.dict()
+        user_dict["record_date"] = datetime.now()
+        user_dict["hashed_password"] = get_password_hash(user.password)
+        user_dict["recorder_id"] = user_auth.id
+        db_user = User(**user_dict)
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
 
-    return db_user
+        return db_user
 
 
 @router.get("/users", tags=["users"], response_model=list[UserResponse])

@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException
 from app.models import Lesson
-from app.schemas import Lesson, LessonResponse
+from app.schemas import Lesson, LessonResponse, LessonUpdate
 from app.dependencies import get_session, CommonsDep
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -11,21 +11,25 @@ from app.routers.authentication import AuthorizedUser
 router = APIRouter()
 
 
-# Endpoints of users
-# add all Endpoints for user
+# Endpoints of lesson
+# add all Endpoints for lesson
 # -------------------------------------------------------------------------------------------------------
 
 
 @router.post("/lesson/create", tags=["lesson"], response_model=LessonResponse)
-async def create_lesson(lesson: Lesson, db: Session = Depends(get_session)):
-    lesson_dict = lesson.dict()
-    lesson_dict["record_date"] = datetime.now()
-    db_lesson = Lesson(**lesson_dict)
-    db.add(db_lesson)
-    db.commit()
-    db.refresh(db_lesson)
+async def create_lesson(user_auth: AuthorizedUser, lesson: Lesson, db: Session = Depends(get_session)):
 
-    return db_lesson
+    if user_auth:
+
+        lesson_dict = lesson.dict()
+        lesson_dict["record_date"] = datetime.now()
+        lesson_dict["recorder_id"] = user_auth.id
+        db_lesson = Lesson(**lesson_dict)
+        db.add(db_lesson)
+        db.commit()
+        db.refresh(db_lesson)
+
+        return db_lesson
 
 
 @router.get("/lesson", tags=["lesson"], response_model=list[LessonResponse])
@@ -52,7 +56,7 @@ async def get_lesson(user_auth: AuthorizedUser, lesson_id: int, db: Session = De
 @router.put("/lesson/update/{lesson_id}", tags=["lesson"], response_model=LessonResponse)
 async def update_lesson(
         user_auth: AuthorizedUser,
-        lesson: Lesson,
+        lesson: LessonUpdate,
         lesson_id: int,
         db: Session = Depends(get_session)
 ):

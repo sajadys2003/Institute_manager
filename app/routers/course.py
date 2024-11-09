@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException
 from app.models import Course
-from app.schemas import Course, CourseResponse
+from app.schemas import Course, CourseResponse, CourseUpdate
 from app.dependencies import get_session, CommonsDep
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -11,21 +11,24 @@ from app.routers.authentication import AuthorizedUser
 router = APIRouter()
 
 
-# Endpoints of users
-# add all Endpoints for user
+# Endpoints of course
+# add all Endpoints for course
 # -------------------------------------------------------------------------------------------------------
 
 
 @router.post("/course/create", tags=["course"], response_model=CourseResponse)
-async def create_course(course: Course, db: Session = Depends(get_session)):
-    course_dict = course.dict()
-    course_dict["record_date"] = datetime.now()
-    db_course = Course(**course_dict)
-    db.add(db_course)
-    db.commit()
-    db.refresh(db_course)
+async def create_course(user_auth: AuthorizedUser, course: Course, db: Session = Depends(get_session)):
 
-    return db_course
+    if user_auth:
+        course_dict = course.dict()
+        course_dict["record_date"] = datetime.now()
+        course_dict["recorder_id"] = user_auth.id
+        db_course = Course(**course_dict)
+        db.add(db_course)
+        db.commit()
+        db.refresh(db_course)
+
+        return db_course
 
 
 @router.get("/course", tags=["course"], response_model=list[CourseResponse])
@@ -50,9 +53,9 @@ async def get_course(user_auth: AuthorizedUser, course_id: int, db: Session = De
 
 
 @router.put("/course/update/{course_id}", tags=["course"], response_model=CourseResponse)
-async def update_lesson(
+async def update_course(
         user_auth: AuthorizedUser,
-        course: Course,
+        course: CourseUpdate,
         course_id: int,
         db: Session = Depends(get_session)
 ):

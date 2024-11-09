@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException
 from app.models import LessonGroup
-from app.schemas import LessonsGroup, LessonsGroupResponse
+from app.schemas import LessonsGroup, LessonsGroupResponse, LessonsGroupUpdate
 from app.dependencies import get_session, CommonsDep
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -11,21 +11,25 @@ from app.routers.authentication import AuthorizedUser
 router = APIRouter()
 
 
-# Endpoints of users
-# add all Endpoints for user
+# Endpoints of lesson group
+# add all Endpoints for lesson group
 # -------------------------------------------------------------------------------------------------------
 
 
 @router.post("/lessons_group/create", tags=["lessons_group"], response_model=LessonsGroupResponse)
-async def create_lessons_group(lesson_group: LessonsGroup, db: Session = Depends(get_session)):
-    lessons_group_dict = lesson_group.dict()
-    lessons_group_dict["record_date"] = datetime.now()
-    db_lessons_group = LessonGroup(**lessons_group_dict)
-    db.add(db_lessons_group)
-    db.commit()
-    db.refresh(db_lessons_group)
+async def create_lessons_group(
+        user_auth: AuthorizedUser, lesson_group: LessonsGroup, db: Session = Depends(get_session)
+):
+    if user_auth:
+        lessons_group_dict = lesson_group.dict()
+        lessons_group_dict["record_date"] = datetime.now()
+        lessons_group_dict["recorder_id"] = user_auth.id
+        db_lessons_group = LessonGroup(**lessons_group_dict)
+        db.add(db_lessons_group)
+        db.commit()
+        db.refresh(db_lessons_group)
 
-    return db_lessons_group
+        return db_lessons_group
 
 
 @router.get("/lessons_group", tags=["lessons_group"], response_model=list[LessonsGroupResponse])
@@ -52,7 +56,7 @@ async def get_lessons_group(user_auth: AuthorizedUser, lessons_group_id: int, db
 @router.put("/lessons_group/update/{lessons_group_id}", tags=["lessons_group"], response_model=LessonsGroupResponse)
 async def update_lessons_group(
         user_auth: AuthorizedUser,
-        lessons_group: LessonsGroup,
+        lessons_group: LessonsGroupUpdate,
         lessons_group_id: int,
         db: Session = Depends(get_session)
 ):
