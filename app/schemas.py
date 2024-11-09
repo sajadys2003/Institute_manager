@@ -132,7 +132,6 @@ class UserOut(BaseModel):
     permission_group_id: int | None
     is_enabled: bool
     recorder_id: int | None
-    record_date: datetime
 
 
 # response models
@@ -165,28 +164,47 @@ class UserResponse(UserOut):
 class LessonsGroup(BaseModel):
     name: str
     is_enabled: bool
-    recorder_id = int
-    record_date: datetime
+    recorder_id: int
 
 
 class LessonsGroupResponse(BaseModel):
     name: str
     is_enabled: bool
-    recorder = UserOut
-    record_date: datetime
+    recorder: UserOut
 
 
 class Lesson(BaseModel):
     name: str
-    lesson_group_id = int
+    lesson_group_id: int
     is_enabled: bool
-    recorder_id = int
-    record_date: datetime
+    recorder_id: int
 
 
 class LessonResponse(BaseModel):
     name: str
-    lesson_group = LessonsGroup
+    lesson_group: LessonsGroup
     is_enabled: bool
-    recorder = UserOut
-    record_date: datetime
+    recorder: UserOut
+
+
+class Course(BaseModel):
+    name: str
+    lesson_id: int
+    is_enabled: bool
+    recorder_id: int
+
+
+class CourseResponse(BaseModel):
+    name: str
+    lesson: Lesson
+    is_enabled: bool
+    recorder: UserOut
+
+
+class CoursePrice(BaseModel):
+    course_id: int
+    public_price: float
+    private_price: float
+    date: datetime
+    duration: float
+    recorder_id: int

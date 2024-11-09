@@ -82,6 +82,6 @@ async def delete_lesson(user_auth: AuthorizedUser, lesson_id: int, db: Session =
         if db_lesson:
             db_lesson.is_enabled = False
             db.commit()
-            return {"massage": f"lessons with id: {lesson_id} successfully deleted"}
+            return {"massage": f"lesson with id: {lesson_id} successfully deleted"}
         else:
-            raise HTTPException(status_code=404, detail="lessons not found!")
+            raise HTTPException(status_code=404, detail="lesson not found!")
