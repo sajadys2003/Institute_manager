@@ -145,7 +145,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    hashed_password: Mapped[str]
+    password: Mapped[str]
     first_name: Mapped[str]
     last_name: Mapped[str]
     gender: Mapped[str]
@@ -300,7 +300,7 @@ class User(Base):
         return (
             f"User("
             f"id={self.id!r}, "
-            f"hashed_password={self.hashed_password}, "
+            f"hashed_password={self.password}, "
             f"first_name={self.first_name!r}, "
             f"last_name={self.last_name!r}, "
             f"gender={self.gender!r}, "

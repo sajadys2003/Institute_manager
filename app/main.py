@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from fastapi import APIRouter
 
-from app.routers import roles
-
+from app.routers import roles, users
 
 # APIRouter, used to group path operations and structure our app in multiple files.
 
 app = FastAPI()
+
 
 def include_routers(routers: list[APIRouter]):
     for router in routers:
@@ -15,6 +15,6 @@ def include_routers(routers: list[APIRouter]):
 
 include_routers(
     routers=[
-        roles.router
+        roles.router, users.router
     ]
 )

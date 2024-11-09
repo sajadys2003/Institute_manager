@@ -95,6 +95,7 @@ class UserIn(BaseModel):
     recruitment_date: datetime
     is_super_admin: bool
     is_panel_user: bool
+    password: str
     permission_group_id: int | None = None
     is_enabled: bool | None = True
 
@@ -113,6 +114,7 @@ class UserUpdate(BaseModel):
     is_panel_user: bool | None = None
     permission_group_id: int | None = None
     is_enabled: bool | None = None
+
 
 class UserOut(BaseModel):
     id: int

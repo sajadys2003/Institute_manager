@@ -1,88 +1,88 @@
-from sys import prefix
-
+from fastapi import Depends, HTTPException
 from app.models import User
-from app.schemas import UserIn
-from app.schemas import UserUpdate
-from app.schemas import UserResponse
-
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
-from sqlalchemy import and_, or_
+from app.schemas import UserIn, UserResponse, UserUpdate
+from app.dependencies import get_session, CommonsDep
 from sqlalchemy.orm import Session
-from app.dependencies import get_db
-from typing import Annotated
 from datetime import datetime
-from fastapi_pagination import Page, paginate
+from fastapi import APIRouter
+from sqlalchemy import select, and_, or_
+from app.routers.authentication import AuthorizedUser, get_password_hash
 
-router = APIRouter(prefix="/users")
+router = APIRouter()
 
 
-def create_new_record(data: UserIn, db: Session, force: bool):
-    criteria = User.national_code == data.national_code.strip()
-    stored_record = db.query(User).where(criteria).scalar()
-    if stored_record:
-        if force:
-            pass
+# Endpoints of users
+# add all Endpoints for user
+# -------------------------------------------------------------------------------------------------------
+
+
+@router.post("/users/create", tags=["users"], response_model=UserResponse)
+async def create_user(user: UserIn, db: Session = Depends(get_session)):
+    user_dict = user.dict()
+    user_dict["record_date"] = datetime.now()
+    user_dict["hashed_password"] = get_password_hash(user.password)
+    db_user = User(**user_dict)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+
+    return db_user
+
+
+@router.get("/users", tags=["users"], response_model=list[UserResponse])
+async def get_users(user_auth: AuthorizedUser, db: Session = Depends(get_session), params=CommonsDep):
+    if user_auth:
+
+        if params.q:
+            criteria = and_(User.is_enabled,
+                            or_(User.first_name.contains(params.q),
+                                User.last_name.contains(params.q),
+                                User.father_name.contains(params.q),
+                                User.national_code.contains(params.q),
+                                User.phone_number.contains(params.q)))
+
+            return db.scalars(select(User).where(criteria).limit(params.size).offset(params.page))
+
+        return db.scalars(select(User).limit(params.size).offset(params.page))
+
+
+@router.get("/users/{user_id}", tags=["users"], response_model=UserResponse)
+async def get_user(user_auth: AuthorizedUser, user_id: int, db: Session = Depends(get_session)):
+    if user_auth:
+        db_user = db.scalars(select(User).where(User.id == user_id)).first()
+        if db_user:
+            return db_user
+        raise HTTPException(status_code=404, detail="user not found!")
+
+
+@router.put("/users/update/{user_id}", tags=["users"], response_model=UserResponse)
+async def update_user(user_auth: AuthorizedUser, user: UserUpdate, user_id: int, db: Session = Depends(get_session)):
+    if user_auth:
+
+        db_user = db.scalars(select(User).where(User.id == user_id)).first()
+
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="user not found!")
+
+        user_dict = user.model_dump(exclude_unset=True)
+        user_dict["record_date"] = datetime.now()
+        user_dict["recorder_id"] = user_auth.id
+
+        for key, value in user:
+            setattr(db_user, key, value)
+
+        db.commit()
+
+        return db_user
+
+
+@router.delete("/users/delete/{user_id}", tags=["users"])
+async def delete_user(user_auth: AuthorizedUser, user_id: int, db: Session = Depends(get_session)):
+    if user_auth:
+        db_user = db.scalars(select(User).where(User.id == user_id)).first()
+        if db_user:
+            db_user.is_enabled = False
+            db.commit()
+            return {"massage": f"user with id: {user_id} successfully deleted"}
         else:
-
-            raise HTTPException(status_code=400,
-                                detail="a user with duplicate national_code found "
-
-                                       "set force=True to update user")
-
-
-@router.get(path="", response_model=list[UserResponse])
-async def get_all(
-        db: Annotated[Session, Depends(get_db)],
-        page: int = 1,
-        size: int = 20,
-        search_query: str | None = None,
-):
-    if search_query := search_query.strip():
-        criteria = and_(
-            User.is_enabled.is_(True),
-            or_(User.first_name.contains(search_query),
-                User.last_name.contains(search_query),
-                User.father_name.contains(search_query),
-                User.national_code.contains(search_query),
-                User.phone_number.contains(search_query)),
-        )
-    else:
-        criteria = User.is_enabled.is_(True)
-    page -= 1
-    stored_records = db.query(User).where(criteria).offset(size * page).limit(size)
-    return stored_records.all()
-
-
-@router.get(path="/{user_id}", response_model=UserResponse)
-async def get_one(
-        db: Annotated[Session, Depends(get_db)],
-        user_id: int
-):
-    stored_record = db.get(User, user_id)
-
-    if stored_record.is_enabled:
-        return stored_record
-    else:
-        raise HTTPException(status_code=400, detail="Disabled record")
-
-# @router.post(path="/", response_model=UserResponse, status_code=201)
-# async def create(
-#         db: Annotated[Session, Depends(get_session)],
-#         data: UserIn,
-#         force: bool = False
-# ):
-#     if stored_record:
-#         if force:  # update
-#             stored_record.record_date = datetime.now()
-#             db.commit()
-#             return stored_record
-#         else:
-#             raise HTTPException(status_code=409, detail="Duplicate name, set force=True to update record")
-#     else:  # add
-#         data.record_date = datetime.now()
-#         new_record = Role(**data.model_dump())
-#         db.add(new_record)
-#         db.commit()
-#         return new_record
+            raise HTTPException(status_code=404, detail="user not found!")
