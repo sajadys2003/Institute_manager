@@ -169,6 +169,7 @@ class LessonsGroup(BaseModel):
 class LessonsGroupResponse(BaseModel):
     name: str
     is_enabled: bool
+    record_date: datetime
     recorder: UserOut
 
 
@@ -187,6 +188,7 @@ class LessonResponse(BaseModel):
     name: str
     lesson_group: LessonsGroup
     is_enabled: bool
+    record_date: datetime
     recorder: UserOut
 
 
@@ -206,6 +208,7 @@ class CourseResponse(BaseModel):
     name: str
     lesson: Lesson
     is_enabled: bool
+    record_date: datetime
     recorder: UserOut
 
 
@@ -237,3 +240,19 @@ class CoursePriceUpdate(BaseModel):
     private_price: float | None
     duration: float | None
 
+
+class CoursePrerequisite(BaseModel):
+    main_course_id: int
+    prerequisite_id: int
+
+
+class CoursePrerequisiteResponse(BaseModel):
+    main_course: Course
+    prerequisite: Course
+    record_date: datetime
+    recorder: UserOut
+
+
+class CoursePrerequisiteUpdate(BaseModel):
+    main_course_id: int | None
+    prerequisite_id: int | None
