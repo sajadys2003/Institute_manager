@@ -5,7 +5,7 @@ from app.dependencies import get_session, CommonsDep
 from sqlalchemy.orm import Session
 from datetime import datetime
 from fastapi import APIRouter
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, or_
 from app.routers.authentication import AuthorizedUser
 
 router = APIRouter()
@@ -38,7 +38,10 @@ async def get_course_prerequisites(user_auth: AuthorizedUser, db: Session = Depe
     if user_auth:
 
         if params.q:
-            criteria = and_(CoursePrerequisite.is_enabled, CoursePrerequisite.name.contains(params.q))
+            criteria = and_(CoursePrerequisite.is_enabled,
+                            or_(CoursePrerequisite.name.contains(params.q),
+                                CoursePrerequisite.main_course_id.contains(int(params.q)),
+                                CoursePrerequisite.prerequisite_id.contains(int(params.q))))
 
             return db.scalars(select(CoursePrerequisite).where(criteria).limit(params.size).offset(params.page))
 

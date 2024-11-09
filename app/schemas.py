@@ -256,3 +256,29 @@ class CoursePrerequisiteResponse(BaseModel):
 class CoursePrerequisiteUpdate(BaseModel):
     main_course_id: int | None
     prerequisite_id: int | None
+
+
+class RollCall(BaseModel):
+    presentation_session_id: int
+    student_id: int
+    is_present: bool
+    delay: int
+    comment: str
+
+
+class RollCallResponse(BaseModel):
+    presentation_session: Presentation
+    student: UserOut
+    is_present: bool
+    delay: int
+    comment: str
+    record_date: datetime
+    recorder: UserOut
+
+
+class RollCallUpdate(BaseModel):
+    presentation_session_id: int | None
+    student_id: int | None
+    is_present: bool | None
+    delay: int | None
+    comment: str | None
