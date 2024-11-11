@@ -115,15 +115,15 @@ class PermissionGroupDefine(Base):
     __tablename__ = "permission_group_defines"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    permission_id = mapped_column(ForeignKey("permissions.id"), nullable=False)
     permission_group_id = mapped_column(ForeignKey("permission_groups.id"), nullable=False)
+    permission_id = mapped_column(ForeignKey("permissions.id"), nullable=False)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
-    permission: Mapped["Permission"] = relationship(
+    permission_group: Mapped["PermissionGroup"] = relationship(
         back_populates="permission_group_defines"
     )
-    permission_group: Mapped["PermissionGroup"] = relationship(
+    permission: Mapped["Permission"] = relationship(
         back_populates="permission_group_defines"
     )
     recorder: Mapped["User"] = relationship(
@@ -134,8 +134,8 @@ class PermissionGroupDefine(Base):
         return (
             f"PermissionGroupDefine("
             f"id={self.id!r}, "
-            f"permission_id={self.permission_id!r}, "
             f"permission_group_id={self.permission_group_id!r}, "
+            f"permission_id={self.permission_id!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -145,18 +145,18 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    hashed_password: Mapped[str]
+    password: Mapped[str]  # hashed_password
     first_name: Mapped[str]
     last_name: Mapped[str]
     gender: Mapped[str]
     father_name: Mapped[str]
-    date_of_birth: Mapped[date]
+    date_of_birth: Mapped[date] = mapped_column(nullable=True)
     national_code: Mapped[str]
     phone_number: Mapped[str]
     role_id = mapped_column(ForeignKey("roles.id"))
-    recruitment_date: Mapped[datetime]
-    is_super_admin: Mapped[bool]
-    is_panel_user: Mapped[bool]
+    recruitment_date: Mapped[datetime] = mapped_column(nullable=True)
+    is_super_admin: Mapped[bool] = mapped_column(default=False)
+    is_panel_user: Mapped[bool] = mapped_column(default=True)
     permission_group_id = mapped_column(ForeignKey("permission_groups.id"))
     is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
@@ -300,7 +300,7 @@ class User(Base):
         return (
             f"User("
             f"id={self.id!r}, "
-            f"hashed_password={self.hashed_password}, "
+            f"password={self.password}, "
             f"first_name={self.first_name!r}, "
             f"last_name={self.last_name!r}, "
             f"gender={self.gender!r}, "

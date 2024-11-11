@@ -9,7 +9,6 @@ from jwt.exceptions import InvalidTokenError
 from app.dependencies import SessionDep
 from app.models import User
 from sqlalchemy import and_
-from inspect import currentframe
 
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
@@ -26,6 +25,10 @@ class Token(BaseModel):
     token_type: str
 
 
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -34,7 +37,7 @@ def authenticate_user(db: SessionDep, username: str, password: str) -> User:
     criteria = and_(User.phone_number == username, User.is_enabled)
     user = db.query(User).where(criteria).scalar()
 
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not verify_password(password, user.password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
     return user
 
@@ -65,7 +68,7 @@ async def login_for_access_token(
 async def get_current_user(
         db: SessionDep,
         token: Annotated[str, Depends(oauth2_scheme)]
-):
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials"
@@ -84,18 +87,19 @@ async def get_current_user(
     return user
 
 
-CurrentUser = Annotated[User, Depends(get_current_user)]
+CurrentUer = Annotated[User, Depends(get_current_user)]
 
 
-def authorize_user(current_user: CurrentUser):
-    operation = currentframe().f_back.f_code.co_name
-    if operation not in current_user.permissions_list:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not enough permissions"
-        )
-    else:
-        return current_user
+def authorized(
+        current_user: User,
+        operation: str
+) -> User:
+    if not current_user.is_super_admin:
 
-
-AuthorizedUser = Annotated[User, Depends(authorize_user)]
+        permissions_list = current_user.permissions_list
+        if not permissions_list or operation not in permissions_list:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not enough permissions"
+            )
+    return current_user
