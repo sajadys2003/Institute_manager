@@ -51,7 +51,7 @@ async def get_roll_call(user_auth: CurrentUser, roll_call_id: int, db: Session =
 
 
 @router.put("/roll_call/update/{roll_call_id}", tags=["roll_call"], response_model=RollCallResponse)
-async def update_course_price(
+async def update_roll_call(
         user_auth: CurrentUser,
         roll_call: RollCallUpdate,
         roll_call_id: int,

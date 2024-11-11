@@ -17,7 +17,9 @@ router = APIRouter()
 
 
 @router.post("/lessons_group/create", tags=["lessons_group"], response_model=LessonsGroupResponse)
-async def create_lessons_group(user_auth: CurrentUser, lesson_group: LessonsGroupIn, db: Session = Depends(get_session)):
+async def create_lessons_group(
+        user_auth: CurrentUser, lesson_group: LessonsGroupIn, db: Session = Depends(get_session)
+):
     if user_auth:
         lessons_group_dict = lesson_group.dict()
         lessons_group_dict["record_date"] = datetime.now()
@@ -37,7 +39,8 @@ async def get_lessons_groups(
     if user_auth:
         if search:
             criteria = and_(LessonGroup.is_enabled, LessonGroup.name.contains(search))
-            lessons_groups = db.scalars(select(LessonGroup).where(criteria).limit(pagination.limit).offset(pagination.offset))
+            lessons_groups = db.scalars(
+                select(LessonGroup).where(criteria).limit(pagination.limit).offset(pagination.offset))
             if lessons_groups:
                 return lessons_groups
             raise HTTPException(status_code=404, detail="lesson groups not found!")
