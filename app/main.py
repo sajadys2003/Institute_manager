@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi import APIRouter
 
-from app.routers import roles, users
+from app.routers import roles, users, security, lesson_group, lesson, course, course_price
 
 # APIRouter, used to group path operations and structure our app in multiple files.
 
@@ -15,6 +15,7 @@ def include_routers(routers: list[APIRouter]):
 
 include_routers(
     routers=[
-        roles.router, users.router
+        security.router, users.router, roles.router, lesson_group.router, lesson.router, course.router,
+        course_price.router
     ]
 )

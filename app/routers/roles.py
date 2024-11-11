@@ -6,7 +6,7 @@ from inspect import currentframe
 from fastapi import APIRouter
 from fastapi import HTTPException, status
 from sqlalchemy import and_
-from app.dependencies import SessionDep, CommonsDep
+from app.dependencies import SessionDep, PageDep
 from datetime import datetime
 
 router = APIRouter(prefix="/roles")
@@ -15,17 +15,18 @@ router = APIRouter(prefix="/roles")
 @router.get("/", response_model=list[RoleResponse])
 async def get_all_roles(
         db: SessionDep,
-        commons: CommonsDep
+        search: str,
+        pagination: PageDep
 ):
-    if commons.q:
+    if search:
         criteria = and_(
             Role.is_enabled,
-            Role.name.contains(commons.q)
+            Role.name.contains(search)
         )
     else:
         criteria = Role.is_enabled
 
-    stored_records = db.query(Role).where(criteria).offset(commons.offset).limit(commons.limit)
+    stored_records = db.query(Role).where(criteria).offset(pagination.offset).limit(pagination.limit)
     return stored_records.all()
 
 

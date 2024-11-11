@@ -285,6 +285,7 @@ class User(Base):
         if pg := self.permission_group:
             if pgd := pg.permission_group_defines:
                 return [p.permission.name for p in pgd]
+        return []
 
     def authorize(self):
         operation = currentframe().f_back.f_code.co_name

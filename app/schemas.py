@@ -93,11 +93,16 @@ class UserIn(BaseModel):
     phone_number: str
     role_id: int | None = None
     recruitment_date: datetime
-    is_super_admin: bool
-    is_panel_user: bool
+    is_super_admin: bool = False
+    is_panel_user: bool = False
     password: str
     permission_group_id: int | None = None
-    is_enabled: bool | None = True
+    is_enabled: bool = True
+
+
+class UserAuth(UserIn):
+    permissions_list: list
+    id: int
 
 
 class UserUpdate(BaseModel):
@@ -108,6 +113,7 @@ class UserUpdate(BaseModel):
     date_of_birth: date | None = None
     national_code: str | None = None
     phone_number: str | None = None
+    password: str | None = None
     role_id: int | None = None
     recruitment_date: datetime | None = None
     is_super_admin: bool | None = None
@@ -117,7 +123,6 @@ class UserUpdate(BaseModel):
 
 
 class UserOut(BaseModel):
-    id: int
     first_name: str
     last_name: str
     gender: str
@@ -161,7 +166,7 @@ class UserResponse(UserOut):
     recorder: UserOut | None
 
 
-class LessonsGroup(BaseModel):
+class LessonsGroupIn(BaseModel):
     name: str
     is_enabled: bool
 
@@ -178,7 +183,7 @@ class LessonsGroupUpdate(BaseModel):
     is_enabled: bool | None
 
 
-class Lesson(BaseModel):
+class LessonIn(BaseModel):
     name: str
     lesson_group_id: int
     is_enabled: bool
@@ -186,7 +191,7 @@ class Lesson(BaseModel):
 
 class LessonResponse(BaseModel):
     name: str
-    lesson_group: LessonsGroup
+    lesson_group: LessonsGroupIn
     is_enabled: bool
     record_date: datetime
     recorder: UserOut
@@ -198,7 +203,7 @@ class LessonUpdate(BaseModel):
     is_enabled: bool | None
 
 
-class Course(BaseModel):
+class CourseIn(BaseModel):
     name: str
     lesson_id: int
     is_enabled: bool
@@ -206,7 +211,7 @@ class Course(BaseModel):
 
 class CourseResponse(BaseModel):
     name: str
-    lesson: Lesson
+    lesson: LessonIn
     is_enabled: bool
     record_date: datetime
     recorder: UserOut
@@ -218,15 +223,16 @@ class CourseUpdate(BaseModel):
     is_enabled: bool | None
 
 
-class CoursePrice(BaseModel):
+class CoursePriceIn(BaseModel):
     course_id: int
     public_price: float
     private_price: float
+    date: datetime
     duration: float
 
 
 class CoursePriceResponse(BaseModel):
-    course: Course
+    course: CourseIn
     public_price: float
     private_price: float
     date: datetime
@@ -241,14 +247,14 @@ class CoursePriceUpdate(BaseModel):
     duration: float | None
 
 
-class CoursePrerequisite(BaseModel):
+class CoursePrerequisiteIn(BaseModel):
     main_course_id: int
     prerequisite_id: int
 
 
 class CoursePrerequisiteResponse(BaseModel):
-    main_course: Course
-    prerequisite: Course
+    main_course: CourseIn
+    prerequisite: CourseIn
     record_date: datetime
     recorder: UserOut
 
@@ -258,7 +264,7 @@ class CoursePrerequisiteUpdate(BaseModel):
     prerequisite_id: int | None
 
 
-class RollCall(BaseModel):
+class RollCallIn(BaseModel):
     presentation_session_id: int
     student_id: int
     is_present: bool
@@ -267,7 +273,7 @@ class RollCall(BaseModel):
 
 
 class RollCallResponse(BaseModel):
-    presentation_session: Presentation
+    presentation_session: int
     student: UserOut
     is_present: bool
     delay: int
@@ -282,3 +288,20 @@ class RollCallUpdate(BaseModel):
     is_present: bool | None
     delay: int | None
     comment: str | None
+
+
+class SurveyCategoryIn(BaseModel):
+    name: str
+    is_enabled: bool
+
+
+class SurveyCategoryResponse(BaseModel):
+    name: str
+    is_enabled: bool
+    record_date: datetime
+    recorder: UserOut
+
+
+class SurveyCategoryUpdate(BaseModel):
+    name: str | None = None
+    is_enabled: bool | None = None

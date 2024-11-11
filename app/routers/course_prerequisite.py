@@ -1,12 +1,12 @@
 from fastapi import Depends, HTTPException
 from app.models import CoursePrerequisite
-from app.schemas import CoursePrerequisite, CoursePrerequisiteResponse, CoursePrerequisiteUpdate
-from app.dependencies import get_session, CommonsDep
+from app.schemas import CoursePrerequisiteIn, CoursePrerequisiteResponse, CoursePrerequisiteUpdate
+from app.dependencies import get_session, PageDep
 from sqlalchemy.orm import Session
 from datetime import datetime
 from fastapi import APIRouter
-from sqlalchemy import select, and_, or_
-from app.routers.authentication import AuthorizedUser
+from sqlalchemy import select
+from app.routers.security import CurrentUser
 
 router = APIRouter()
 
@@ -18,9 +18,8 @@ router = APIRouter()
 
 @router.post("/course_prerequisite/create", tags=["course_prerequisite"], response_model=CoursePrerequisiteResponse)
 async def create_course_prerequisite(
-        user_auth: AuthorizedUser, course_prerequisite: CoursePrerequisite, db: Session = Depends(get_session)
+        user_auth: CurrentUser, course_prerequisite: CoursePrerequisiteIn, db: Session = Depends(get_session)
 ):
-
     if user_auth:
         course_prerequisite_dict = course_prerequisite.dict()
         course_prerequisite_dict["record_date"] = datetime.now()
@@ -29,74 +28,66 @@ async def create_course_prerequisite(
         db.add(db_course_prerequisite)
         db.commit()
         db.refresh(db_course_prerequisite)
-
         return db_course_prerequisite
+    raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
 @router.get("/course_prerequisite", tags=["course_prerequisite"], response_model=list[CoursePrerequisiteResponse])
-async def get_course_prerequisites(user_auth: AuthorizedUser, db: Session = Depends(get_session), params=CommonsDep):
+async def get_course_prerequisites(user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session)):
     if user_auth:
-
-        if params.q:
-            criteria = and_(CoursePrerequisite.is_enabled,
-                            or_(CoursePrerequisite.name.contains(params.q),
-                                CoursePrerequisite.main_course_id.contains(int(params.q)),
-                                CoursePrerequisite.prerequisite_id.contains(int(params.q))))
-
-            return db.scalars(select(CoursePrerequisite).where(criteria).limit(params.size).offset(params.page))
-
-        return db.scalars(select(CoursePrerequisite).limit(params.size).offset(params.page))
+        course_prerequisites = db.scalars(select(CoursePrerequisite).limit(pagination.limit).offset(pagination.offset))
+        if course_prerequisites:
+            return course_prerequisites
+        raise HTTPException(status_code=404, detail="course prerequisite not found!")
+    raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
 @router.get("/course_prerequisite/{course_prerequisite_id}", tags=["course_prerequisite"],
             response_model=CoursePrerequisiteResponse)
-async def get_course_price(user_auth: AuthorizedUser, course_prerequisite_id: int, db: Session = Depends(get_session)):
+async def get_course_price(user_auth: CurrentUser, course_prerequisite_id: int, db: Session = Depends(get_session)):
     if user_auth:
         db_course_prerequisite = db.scalars(
             select(CoursePrerequisite).where(CoursePrerequisite.id == course_prerequisite_id)).first()
         if db_course_prerequisite:
             return db_course_prerequisite
         raise HTTPException(status_code=404, detail="course prerequisite not found!")
+    raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
 @router.put("/course_prerequisite/update/{course_prerequisite_id}", tags=["course_prerequisite"],
             response_model=CoursePrerequisiteResponse)
 async def update_course_price(
-        user_auth: AuthorizedUser,
+        user_auth: CurrentUser,
         course_prerequisite: CoursePrerequisiteUpdate,
         course_prerequisite_id: int,
         db: Session = Depends(get_session)
 ):
     if user_auth:
-
         db_course_prerequisite = db.scalars(
             select(CoursePrerequisite).where(CoursePrerequisiteUpdate.id == course_prerequisite_id)).first()
-
         if db_course_prerequisite is None:
             raise HTTPException(status_code=404, detail="course prerequisite not found!")
-
         course_prerequisite_dict = course_prerequisite.model_dump(exclude_unset=True)
         course_prerequisite_dict["record_date"] = datetime.now()
         course_prerequisite_dict["recorder_id"] = user_auth.id
-
-        for key, value in course_prerequisite:
+        for key, value in course_prerequisite_dict.items():
             setattr(db_course_prerequisite, key, value)
-
         db.commit()
-
         return db_course_prerequisite
+    raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
 @router.delete("/course_prerequisite/delete/{course_prerequisite_id}", tags=["course_prerequisite"])
 async def delete_course_prerequisite(
-        user_auth: AuthorizedUser, course_prerequisite_id: int, db: Session = Depends(get_session)
+        user_auth: CurrentUser, course_prerequisite_id: int, db: Session = Depends(get_session)
 ):
     if user_auth:
         db_course_prerequisite = db.scalars(
             select(CoursePrerequisite).where(CoursePrerequisite.id == course_prerequisite_id)).first()
         if db_course_prerequisite:
-            db_course_prerequisite.is_enabled = False
+            db.delete(db_course_prerequisite)
             db.commit()
             return {"massage": f"course prerequisite with id: {course_prerequisite_id} successfully deleted"}
         else:
             raise HTTPException(status_code=404, detail="course prerequisite not found!")
+    raise HTTPException(status_code=401, detail="Not enough permissions")

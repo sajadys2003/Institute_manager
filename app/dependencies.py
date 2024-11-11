@@ -16,7 +16,7 @@ def get_session():
         yield session
 
 
-SessionDep = Annotated[Session, Depends(get_session)]
+SessionDep = Annotated[Session(engine), Depends(get_session)]
 
 
 class Pagination:
@@ -27,12 +27,3 @@ class Pagination:
 
 
 PageDep = Annotated[Pagination, Depends(Pagination)]
-
-
-class CommonQueryParams(Pagination):
-    def __init__(self, q: str | None = None, page: int = 1, size: int = 20):
-        super().__init__(page, size)
-        self.q = q.strip() if q else None
-
-
-CommonsDep = Annotated[CommonQueryParams, Depends(CommonQueryParams)]
