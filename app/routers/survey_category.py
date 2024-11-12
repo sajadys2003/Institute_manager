@@ -5,7 +5,7 @@ from app.dependencies import get_session, PageDep
 from sqlalchemy.orm import Session
 from datetime import datetime
 from fastapi import APIRouter
-from sqlalchemy import select, and_ , or_
+from sqlalchemy import select, and_, or_
 from app.routers.security import CurrentUser
 
 router = APIRouter()

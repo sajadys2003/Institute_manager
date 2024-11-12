@@ -237,6 +237,7 @@ class CoursePriceResponse(BaseModel):
     private_price: float
     date: datetime
     duration: float
+    record_date: datetime
     recorder: UserOut
 
 
