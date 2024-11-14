@@ -1,25 +1,20 @@
 from app.models import Classroom
 from app.schemas import ClassroomIn, ClassroomUpdate, ClassroomResponse
 
-# common modules
+
 from .security import CurrentUer, authorized
 from inspect import currentframe
 from fastapi import APIRouter
 from fastapi import HTTPException, status
-from sqlalchemy import and_
 from app.dependencies import SessionDep, CommonsDep
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/classrooms")
 
 
-async def get_by_id(db: SessionDep, classroom_id: int) -> Classroom:
-    criteria = and_(
-        Classroom.id == classroom_id,
-        Classroom.is_enabled
-    )
-    stored_record = db.query(Classroom).where(criteria).scalar()
-
+async def get_by_id(db: SessionDep, lesson_id: int) -> Classroom:
+    stored_record = db.get(Classroom, lesson_id)
     if not stored_record:
         raise HTTPException(status_code=404, detail="Not found")
     return stored_record
@@ -36,15 +31,12 @@ async def get_all_classrooms(
     if authorized(current_user, operation):
 
         if q := commons.q:
-            criteria = and_(
-                Classroom.is_enabled,
-                Classroom.name.contains(q)
-            )
-        else:
-            criteria = Classroom.is_enabled
+            criteria = Classroom.name.contains(q)
+            stored_records = db.query(Classroom).where(criteria)
 
-        stored_records = db.query(Classroom).where(criteria).offset(commons.offset).limit(commons.limit)
-        return stored_records.all()
+        else:
+            stored_records = db.query(Classroom)
+        return stored_records.offset(commons.offset).limit(commons.limit).all()
 
 
 @router.get(path="/{classroom_id}", response_model=ClassroomResponse)
@@ -71,10 +63,14 @@ async def create_classroom(
     if authorized(current_user, operation):
         data_dict = data.model_dump()
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
-        new_record = Classroom(**data_dict)
-        db.add(new_record)
-        db.commit()
-        return new_record
+        try:
+            new_record = Classroom(**data_dict)
+            db.add(new_record)
+            db.commit()
+            return new_record
+        except IntegrityError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
+
 
 
 @router.put(path="/{classroom_id}", response_model=ClassroomResponse)
@@ -89,15 +85,16 @@ async def update_classroom(
     if authorized(current_user, operation):
 
         stored_record = await get_by_id(db, classroom_id)
-
         data_dict = data.model_dump(exclude_unset=True)
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
+        try:
+            for key, value in data_dict.items():
+                setattr(stored_record, key, value)
+            db.commit()
+            return stored_record
+        except IntegrityError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
 
-        for key, value in data_dict.items():
-            setattr(stored_record, key, value)
-        db.commit()
-
-        return stored_record
 
 
 @router.delete(path="/{classroom_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -110,5 +107,8 @@ async def delete_classroom(
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
         stored_record = await get_by_id(db, classroom_id)
-        stored_record.is_enabled = False
-        db.commit()
+        try:
+            db.delete(stored_record)
+            db.commit()
+        except IntegrityError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 from fastapi import Depends
 
-url = "postgresql+psycopg://postgres:---yourpass---@localhost:5432/institute"
+url = "postgresql+psycopg://postgres:password@localhost:5432/institute"
 engine = create_engine(url)
 
 Base.metadata.create_all(bind=engine)

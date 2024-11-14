@@ -2,7 +2,7 @@ from app.models import User
 from app.schemas import UserIn, UserUpdate, UserResponse
 from .security import get_password_hash
 
-# common modules
+
 from .security import CurrentUer, authorized
 from inspect import currentframe
 from fastapi import APIRouter
@@ -10,11 +10,9 @@ from fastapi import HTTPException, status
 from sqlalchemy import and_, or_
 from app.dependencies import SessionDep, CommonsDep
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/users")
-
-
-# async def update(db: SessionDep, record: User, data: dict) -> User:
 
 
 async def get_by_id(db: SessionDep, user_id: int) -> User:
@@ -51,8 +49,8 @@ async def get_all_users(
         else:
             criteria = User.is_enabled
 
-        stored_records = db.query(User).where(criteria).offset(commons.offset).limit(commons.limit)
-        return stored_records.all()
+        stored_records = db.query(User).where(criteria)
+        return stored_records.offset(commons.offset).limit(commons.limit).all()
 
 
 @router.get(path="/{user_id}", response_model=UserResponse)
@@ -87,22 +85,25 @@ async def create_user(
         criteria = User.phone_number == data.phone_number
         existing_user = db.query(User).where(criteria).scalar()
         if existing_user:
-
             if existing_user.is_enabled:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
-
             else:
                 existing_user.is_enabled = True
-                for key, value in data_dict.items():
-                    setattr(existing_user, key, value)
-                db.commit()
-                return existing_user
+                try:
+                    for key, value in data_dict.items():
+                        setattr(existing_user, key, value)
+                    db.commit()
+                    return existing_user
+                except IntegrityError as e:
+                    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
         else:
-            new_record = User(**data_dict)
-            db.add(new_record)
-            db.commit()
-            return new_record
-
+            try:
+                new_record = User(**data_dict)
+                db.add(new_record)
+                db.commit()
+                return new_record
+            except IntegrityError as e:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
 
 @router.put(path="/{user_id}", response_model=UserResponse)
 async def update_user(
@@ -122,24 +123,26 @@ async def update_user(
         data_dict = data.model_dump(exclude_unset=True)
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
 
-        criteria = and_(
-            User.phone_number == data.phone_number,
-            User.id != user_id
-        )
-        existing_user = db.query(User).where(criteria).scalar()
+        if data.phone_number:
+            criteria = and_(
+                User.phone_number == data.phone_number,
+                User.id != user_id
+            )
+            existing_user = db.query(User).where(criteria).scalar()
+            if existing_user:
+                if existing_user.is_enabled:
+                    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
+                else:
+                    existing_user.is_enabled = True
+                    to_update = existing_user
 
-        if existing_user:
-            if existing_user.is_enabled:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
-            else:
-                existing_user.is_enabled = True
-                to_update = existing_user
-
-        for key, value in data_dict.items():
-            setattr(to_update, key, value)
-        db.commit()
-
-        return to_update
+        try:
+            for key, value in data_dict.items():
+                setattr(to_update, key, value)
+            db.commit()
+            return to_update
+        except IntegrityError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
 
 
 @router.delete(path="/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

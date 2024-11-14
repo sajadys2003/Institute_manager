@@ -1,10 +1,8 @@
-from fastapi import HTTPException, status
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
-from inspect import currentframe
 from datetime import datetime
 from datetime import date
 from decimal import Decimal
@@ -18,8 +16,7 @@ class Role(Base):
     __tablename__ = "roles"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
-    is_enabled: Mapped[bool]
+    name: Mapped[str] = mapped_column(unique=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -29,7 +26,8 @@ class Role(Base):
     )
     users: Mapped[list["User"]] = relationship(
         back_populates="role",
-        foreign_keys="[User.role_id]"
+        foreign_keys="[User.role_id]",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -37,7 +35,6 @@ class Role(Base):
             f"Role("
             f"id={self.id!r}, "
             f"name={self.name!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -47,14 +44,14 @@ class Permission(Base):
     __tablename__ = "permissions"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True)
     parent_id = mapped_column(ForeignKey("permissions.id"))
-    is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
     children: Mapped[list["Permission"]] = relationship(
-        back_populates="parent"
+        back_populates="parent",
+        passive_deletes="all"
     )
     parent: Mapped["Permission"] = relationship(
         back_populates="children",
@@ -64,7 +61,8 @@ class Permission(Base):
         back_populates="recorder_of_permissions"
     )
     permission_group_defines: Mapped[list["PermissionGroupDefine"]] = relationship(
-        back_populates="permission"
+        back_populates="permission",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -73,7 +71,6 @@ class Permission(Base):
             f"id={self.id!r}, "
             f"name={self.name!r}, "
             f"parent_id={self.parent_id!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -83,8 +80,7 @@ class PermissionGroup(Base):
     __tablename__ = "permission_groups"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
+    name: Mapped[str] = mapped_column(unique=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -93,11 +89,13 @@ class PermissionGroup(Base):
         foreign_keys=[recorder_id]
     )
     permission_group_defines: Mapped[list["PermissionGroupDefine"]] = relationship(
-        back_populates="permission_group"
+        back_populates="permission_group",
+        passive_deletes="all"
     )
     users: Mapped[list["User"]] = relationship(
         back_populates="permission_group",
-        foreign_keys="[User.permission_group_id]"
+        foreign_keys="[User.permission_group_id]",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -105,7 +103,6 @@ class PermissionGroup(Base):
             f"PermissionGroup("
             f"id={self.id!r}, "
             f"name={self.name!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -114,9 +111,8 @@ class PermissionGroup(Base):
 class PermissionGroupDefine(Base):
     __tablename__ = "permission_group_defines"
 
-    id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    permission_group_id = mapped_column(ForeignKey("permission_groups.id"), nullable=False)
-    permission_id = mapped_column(ForeignKey("permissions.id"), nullable=False)
+    permission_group_id = mapped_column(ForeignKey("permission_groups.id"), primary_key=True, nullable=False)
+    permission_id = mapped_column(ForeignKey("permissions.id"),primary_key=True, nullable=False)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -133,7 +129,6 @@ class PermissionGroupDefine(Base):
     def __repr__(self) -> str:
         return (
             f"PermissionGroupDefine("
-            f"id={self.id!r}, "
             f"permission_group_id={self.permission_group_id!r}, "
             f"permission_id={self.permission_id!r}, "
             f"recorder_id={self.recorder_id!r}, "
@@ -152,7 +147,7 @@ class User(Base):
     father_name: Mapped[str]
     date_of_birth: Mapped[date] = mapped_column(nullable=True)
     national_code: Mapped[str]
-    phone_number: Mapped[str]
+    phone_number: Mapped[str] = mapped_column(unique=True)
     role_id = mapped_column(ForeignKey("roles.id"))
     recruitment_date: Mapped[datetime] = mapped_column(nullable=True)
     is_super_admin: Mapped[bool] = mapped_column(default=False)
@@ -243,7 +238,12 @@ class User(Base):
         back_populates="recorder"
     )
     student_of_presentation_surveys: Mapped[list["PresentationSurvey"]] = relationship(
-        back_populates="student"
+        back_populates="student",
+        foreign_keys="[PresentationSurvey.student_id]"
+    )
+    recorder_of_presentation_surveys: Mapped[list["PresentationSurvey"]] = relationship(
+        back_populates="recorder",
+        foreign_keys="[PresentationSurvey.recorder_id]"
     )
     recorder_of_exams: Mapped[list["Exam"]] = relationship(
         back_populates="recorder"
@@ -286,16 +286,6 @@ class User(Base):
             if pgd := pg.permission_group_defines:
                 return [p.permission.name for p in pgd]
 
-    def authorize(self):
-        operation = currentframe().f_back.f_code.co_name
-        if operation not in self.permissions_list:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not enough permissions"
-            )
-        else:
-            return self
-
     def __repr__(self) -> str:
         return (
             f"User("
@@ -323,8 +313,7 @@ class LessonGroup(Base):
     __tablename__ = "lesson_groups"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
+    name: Mapped[str] = mapped_column(unique=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -333,10 +322,12 @@ class LessonGroup(Base):
     )
 
     lessons: Mapped[list["Lesson"]] = relationship(
-        back_populates="lesson_group"
+        back_populates="lesson_group",
+        passive_deletes="all"
     )
     classrooms: Mapped[list["Classroom"]] = relationship(
-        back_populates="lesson_group"
+        back_populates="lesson_group",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -344,7 +335,6 @@ class LessonGroup(Base):
             f"LessonGroup("
             f"id={self.id!r}, "
             f"name={self.name!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -354,9 +344,8 @@ class Lesson(Base):
     __tablename__ = "lessons"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
-    lesson_group_id = mapped_column(ForeignKey("lesson_groups.id"), nullable=False)
-    is_enabled: Mapped[bool] = mapped_column(default=True)
+    name: Mapped[str] = mapped_column(unique=True)
+    lesson_group_id = mapped_column(ForeignKey("lesson_groups.id"))
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -369,7 +358,8 @@ class Lesson(Base):
     )
 
     courses: Mapped[list["Course"]] = relationship(
-        back_populates="lesson"
+        back_populates="lesson",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -378,7 +368,6 @@ class Lesson(Base):
             f"id={self.id!r}, "
             f"name={self.name!r}, "
             f"lesson_group_id={self.lesson_group_id!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -388,10 +377,9 @@ class Course(Base):
     __tablename__ = "courses"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True)
     # double check ...
     lesson_id = mapped_column(ForeignKey("lessons.id"))
-    is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -404,18 +392,22 @@ class Course(Base):
     )
 
     course_prices: Mapped[list["CoursePrice"]] = relationship(
-        back_populates="course"
+        back_populates="course",
+        passive_deletes="all"
     )
     as_main_courses: Mapped[list["CoursePrerequisite"]] = relationship(
         back_populates="main_course",
-        foreign_keys="[CoursePrerequisite.main_course_id]"
+        foreign_keys="[CoursePrerequisite.main_course_id]",
+        passive_deletes="all"
     )
     as_prerequisites: Mapped[list["CoursePrerequisite"]] = relationship(
         back_populates="prerequisite",
-        foreign_keys="[CoursePrerequisite.prerequisite_id]"
+        foreign_keys="[CoursePrerequisite.prerequisite_id]",
+        passive_deletes="all"
     )
     presentations: Mapped[list["Presentation"]] = relationship(
-        back_populates="course"
+        back_populates="course",
+        passive_deletes="all"
     )
     exam: Mapped["Exam"] = relationship(
         back_populates="course"
@@ -427,7 +419,6 @@ class Course(Base):
             f"id={self.id!r}, "
             f"name={self.name!r}, "
             f"lesson_id={self.lesson_id!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -438,10 +429,10 @@ class CoursePrice(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     course_id = mapped_column(ForeignKey("courses.id"), nullable=False)
-    public_price: Mapped[float]
-    private_price: Mapped[float]
+    public_price: Mapped[Decimal]
+    private_price: Mapped[Decimal]
     date: Mapped[datetime]
-    duration: Mapped[float]
+    duration: Mapped[Decimal]
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
 
@@ -469,9 +460,8 @@ class CoursePrice(Base):
 class CoursePrerequisite(Base):
     __tablename__ = "course_prerequisites"
 
-    id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    main_course_id = mapped_column(ForeignKey("courses.id"), nullable=False)
-    prerequisite_id = mapped_column(ForeignKey("courses.id"), nullable=False)
+    main_course_id = mapped_column(ForeignKey("courses.id"),primary_key=True, nullable=False)
+    prerequisite_id = mapped_column(ForeignKey("courses.id"),primary_key=True, nullable=False)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -491,7 +481,6 @@ class CoursePrerequisite(Base):
     def __repr__(self) -> str:
         return (
             f"CoursePrerequisite("
-            f"id={self.id!r}, "
             f"main_course_id={self.main_course_id!r}, "
             f"prerequisite_id={self.prerequisite_id!r}, "
             f"recorder_id={self.recorder_id!r}, "
@@ -503,9 +492,8 @@ class Building(Base):
     __tablename__ = "buildings"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True)
     location: Mapped[str]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -514,7 +502,8 @@ class Building(Base):
     )
 
     classrooms: Mapped[list["Classroom"]] = relationship(
-        back_populates="building"
+        back_populates="building",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -523,7 +512,6 @@ class Building(Base):
             f"id={self.id!r}, "
             f"name={self.name!r}, "
             f"location={self.location!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -533,12 +521,11 @@ class Classroom(Base):
     __tablename__ = "classrooms"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True)
     building_id = mapped_column(ForeignKey("buildings.id"), nullable=False)
     floor: Mapped[int]
     capacity: Mapped[int]
     lesson_group_id = mapped_column(ForeignKey("lesson_groups.id"))
-    is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -553,7 +540,8 @@ class Classroom(Base):
         back_populates="classrooms"
     )
     presentation_sessions: Mapped[list["PresentationSession"]] = relationship(
-        back_populates="classroom"
+        back_populates="classroom",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -565,7 +553,6 @@ class Classroom(Base):
             f"floor={self.floor!r}, "
             f"capacity={self.capacity!r}, "
             f"lesson_group_id={self.lesson_group_id!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -581,7 +568,6 @@ class Presentation(Base):
     session_count: Mapped[int]
     start_date: Mapped[date]
     end_date: Mapped[date]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
 
@@ -597,16 +583,20 @@ class Presentation(Base):
         foreign_keys=[recorder_id]
     )
     selected_presentations: Mapped[list["SelectedPresentation"]] = relationship(
-        back_populates="presentation"
+        back_populates="presentation",
+        passive_deletes="all"
     )
     presentation_sessions: Mapped[list["PresentationSession"]] = relationship(
-        back_populates="presentation"
+        back_populates="presentation",
+        passive_deletes="all"
     )
     presentation_surveys: Mapped[list["PresentationSurvey"]] = relationship(
-        back_populates="presentation"
+        back_populates="presentation",
+        passive_deletes="all"
     )
     financial_transactions: Mapped[list["FinancialTransaction"]] = relationship(
-        back_populates="presentation"
+        back_populates="presentation",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -619,7 +609,6 @@ class Presentation(Base):
             f"session_count={self.session_count!r}, "
             f"start_date={self.start_date!r}, "
             f"end_date={self.end_date!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -631,8 +620,7 @@ class SelectedPresentation(Base):
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     presentation_id = mapped_column(ForeignKey("presentations.id"), nullable=False)
     student_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    grade: Mapped[float] = mapped_column(nullable=True)
-    is_enabled: Mapped[bool] = mapped_column(default=True)
+    grade: Mapped[Decimal] = mapped_column(nullable=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
 
@@ -648,7 +636,8 @@ class SelectedPresentation(Base):
         foreign_keys=[recorder_id]
     )
     financial_transactions: Mapped[list["FinancialTransaction"]] = relationship(
-        back_populates="selected_presentation"
+        back_populates="selected_presentation",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -658,7 +647,6 @@ class SelectedPresentation(Base):
             f"presentation_id={self.presentation_id!r}, "
             f"student_id={self.student_id!r}, "
             f"grade={self.grade!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -674,7 +662,6 @@ class PresentationSession(Base):
     end_time: Mapped[datetime]
     is_canceled: Mapped[bool] = mapped_column(default=False)
     is_extra: Mapped[bool] = mapped_column(default=False)
-    is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
 
@@ -688,7 +675,8 @@ class PresentationSession(Base):
         back_populates="recorder_of_presentation_sessions"
     )
     roll_calls: Mapped[list["RollCall"]] = relationship(
-        back_populates="presentation_session"
+        back_populates="presentation_session",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -701,7 +689,6 @@ class PresentationSession(Base):
             f"end_time={self.end_time!r}, "
             f"is_canceled={self.is_canceled!r}, "
             f"is_extra={self.is_extra!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -749,8 +736,7 @@ class SurveyCategory(Base):
     __tablename__ = "survey_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
+    name: Mapped[str] = mapped_column(unique=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -759,7 +745,8 @@ class SurveyCategory(Base):
     )
 
     presentation_surveys: Mapped[list["PresentationSurvey"]] = relationship(
-        back_populates="survey_category"
+        back_populates="survey_category",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -767,7 +754,6 @@ class SurveyCategory(Base):
             f"SurveyCategory("
             f"id={self.id!r}, "
             f"name={self.name!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -780,17 +766,23 @@ class PresentationSurvey(Base):
     student_id = mapped_column(ForeignKey("users.id"), nullable=False)
     presentation_id = mapped_column(ForeignKey("presentations.id"), nullable=False)
     survey_category_id = mapped_column(ForeignKey("survey_categories.id"), nullable=False)
-    score: Mapped[int]
+    score: Mapped[Decimal]
+    recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
     student: Mapped["User"] = relationship(
-        back_populates="student_of_presentation_surveys"
+        back_populates="student_of_presentation_surveys",
+        foreign_keys=[student_id]
     )
     presentation: Mapped["Presentation"] = relationship(
         back_populates="presentation_surveys"
     )
     survey_category: Mapped["SurveyCategory"] = relationship(
         back_populates="presentation_surveys"
+    )
+    recorder: Mapped["User"] = relationship(
+        back_populates="recorder_of_presentation_surveys",
+        foreign_keys=[recorder_id]
     )
 
     def __repr__(self) -> str:
@@ -801,6 +793,7 @@ class PresentationSurvey(Base):
             f"presentation_id={self.presentation_id!r}, "
             f"survey_category_id={self.survey_category_id!r}, "
             f"score={self.score!r}, "
+            f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
 
@@ -811,7 +804,6 @@ class Exam(Base):
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     course_id = mapped_column(ForeignKey("courses.id"), nullable=False)
     price: Mapped[Decimal]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
 
@@ -822,7 +814,8 @@ class Exam(Base):
         back_populates="recorder_of_exams"
     )
     exam_schedules: Mapped[list["ExamSchedule"]] = relationship(
-        back_populates="exam"
+        back_populates="exam",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -831,7 +824,6 @@ class Exam(Base):
             f"id={self.id!r}, "
             f"course_id={self.course_id!r}, "
             f"price={self.price!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -843,7 +835,6 @@ class ExamSchedule(Base):
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     exam_id = mapped_column(ForeignKey("exams.id"), nullable=False)
     start_date: Mapped[datetime]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
 
@@ -854,7 +845,8 @@ class ExamSchedule(Base):
         back_populates="recorder_of_exam_schedules"
     )
     selected_exams: Mapped[list["SelectedExam"]] = relationship(
-        back_populates="exam_schedule"
+        back_populates="exam_schedule",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -863,7 +855,6 @@ class ExamSchedule(Base):
             f"id={self.id!r}, "
             f"exam_id={self.exam_id!r}, "
             f"start_date={self.start_date!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -892,7 +883,8 @@ class SelectedExam(Base):
         foreign_keys=[recorder_id]
     )
     financial_transactions: Mapped[list["FinancialTransaction"]] = relationship(
-        back_populates="selected_exam"
+        back_populates="selected_exam",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -912,8 +904,7 @@ class FinancialCategory(Base):
     __tablename__ = "financial_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
+    name: Mapped[str] = mapped_column(unique=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -921,12 +912,16 @@ class FinancialCategory(Base):
         back_populates="recorder_of_financial_categories"
     )
 
+    financial_transactions: Mapped[list["FinancialTransaction"]] = relationship(
+        back_populates="financial_category",
+        passive_deletes="all"
+    )
+
     def __repr__(self) -> str:
         return (
             f"FinancialCategory("
             f"id={self.id!r}, "
             f"name={self.name!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -936,8 +931,7 @@ class PayCategory(Base):
     __tablename__ = "pay_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
+    name: Mapped[str] = mapped_column(unique=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -946,7 +940,8 @@ class PayCategory(Base):
     )
 
     financial_transactions: Mapped[list["FinancialTransaction"]] = relationship(
-        back_populates="pay_category"
+        back_populates="pay_category",
+        passive_deletes="all"
     )
 
     def __repr__(self) -> str:
@@ -954,7 +949,6 @@ class PayCategory(Base):
             f"PayCategory("
             f"id={self.id!r}, "
             f"name={self.name!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -979,6 +973,9 @@ class FinancialTransaction(Base):
     user: Mapped["User"] = relationship(
         back_populates="user_of_financial_transactions",
         foreign_keys=[user_id]
+    )
+    financial_category: Mapped["FinancialCategory"] = relationship(
+        back_populates="financial_transactions"
     )
     presentation: Mapped["Presentation"] = relationship(
         back_populates="financial_transactions"

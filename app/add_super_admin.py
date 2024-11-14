@@ -22,7 +22,7 @@ def add_super_admin():
         db.add(super_admin)
         db.commit()
 
-
+# add_super_admin()
 def add_permissions():
     permissions = ["get_all_roles", "get_role_by_id", "create_role", "update_role", "delete_role",
                    "get_all_permissions", "get_permission_by_id", "create_permission",

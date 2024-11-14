@@ -1,67 +1,71 @@
-from app.models import Building
-from app.schemas import BuildingIn, BuildingUpdate, BuildingResponse
-
+from app.models import CoursePrice
+from app.schemas import CoursePriceIn, CoursePriceUpdate, CoursePriceResponse
 
 from .security import CurrentUer, authorized
 from inspect import currentframe
 from fastapi import APIRouter
 from fastapi import HTTPException, status
-from app.dependencies import SessionDep, CommonsDep
+from app.dependencies import SessionDep, PageDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 
-router = APIRouter(prefix="/buildings")
+router = APIRouter(prefix="/course_prices")
 
 
-async def get_by_id(db: SessionDep, building_id: int) -> Building:
-    stored_record = db.get(Building, building_id)
+async def get_by_id(db: SessionDep, course_price_id: int) -> CoursePrice:
+    stored_record = db.get(CoursePrice, course_price_id)
     if not stored_record:
         raise HTTPException(status_code=404, detail="Not found")
     return stored_record
 
 
-@router.get("/", response_model=list[BuildingResponse])
-async def get_all_buildings(
+@router.get("/", response_model=list[CoursePriceResponse])
+async def get_all_course_prices(
         db: SessionDep,
-        commons: CommonsDep,
-        current_user: CurrentUer
+        page: PageDep,
+        current_user: CurrentUer,
+        course_id: int | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
 
-        if q := commons.q:
-            criteria = Building.name.contains(q)
-            stored_records = db.query(Building).where(criteria)
+        if course_id:
+            criteria = CoursePrice.course_id == course_id
+            stored_records = db.query(CoursePrice).where(criteria)
 
         else:
-            stored_records = db.query(Building)
-        return stored_records.offset(commons.offset).limit(commons.limit).all()
+            stored_records = db.query(CoursePrice)
+        return stored_records.offset(page.offset).limit(page.limit).all()
 
 
-@router.get(path="/{building_id}", response_model=BuildingResponse)
-async def get_building_by_id(
+@router.get(path="/{course_price_id}", response_model=CoursePriceResponse)
+async def get_course_price_by_id(
         db: SessionDep,
-        building_id: int,
+        course_price_id: int,
         current_user: CurrentUer
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
-        stored_record = await get_by_id(db, building_id)
+        stored_record = await get_by_id(db, course_price_id)
         return stored_record
 
 
-@router.post(path="/", response_model=BuildingResponse, status_code=status.HTTP_201_CREATED)
-async def create_building(
+@router.post(path="/", response_model=CoursePriceResponse, status_code=status.HTTP_201_CREATED)
+async def create_course_price(
         db: SessionDep,
-        data: BuildingIn,
+        data: CoursePriceIn,
         current_user: CurrentUer
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+
+        if not data.date:
+            data.date = datetime.now()
+
         data_dict = data.model_dump()
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
         try:
-            new_record = Building(**data_dict)
+            new_record = CoursePrice(**data_dict)
             db.add(new_record)
             db.commit()
             return new_record
@@ -69,17 +73,17 @@ async def create_building(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
 
 
-@router.put(path="/{building_id}", response_model=BuildingResponse)
-async def update_building(
+@router.put(path="/{course_price_id}", response_model=CoursePriceResponse)
+async def update_course_price(
         db: SessionDep,
-        building_id: int,
-        data: BuildingUpdate,
+        course_price_id: int,
+        data: CoursePriceUpdate,
         current_user: CurrentUer
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
 
-        stored_record = await get_by_id(db, building_id)
+        stored_record = await get_by_id(db, course_price_id)
         data_dict = data.model_dump(exclude_unset=True)
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
         try:
@@ -91,15 +95,15 @@ async def update_building(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
 
 
-@router.delete(path="/{building_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_building(
+@router.delete(path="/{course_price_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_course_price(
         db: SessionDep,
-        building_id: int,
+        course_price_id: int,
         current_user: CurrentUer
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
-        stored_record = await get_by_id(db, building_id)
+        stored_record = await get_by_id(db, course_price_id)
         try:
             db.delete(stored_record)
             db.commit()

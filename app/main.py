@@ -9,9 +9,9 @@ from app.routers import (
     permissions,
     permission_groups,
     permission_group_defines,
-    buildings,
-    classrooms,
-    presentations
+    # buildings,
+    # classrooms,
+    # presentations
 )
 
 app = FastAPI()
@@ -30,8 +30,8 @@ include_routers(
         permissions.router,
         permission_groups.router,
         permission_group_defines.router,
-        buildings.router,
-        classrooms.router,
-        presentations.router
+        # buildings.router,
+        # classrooms.router,
+        # presentations.router
     ]
 )
