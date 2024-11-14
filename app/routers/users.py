@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from fastapi import APIRouter
 from sqlalchemy import select, and_, or_
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.routers.security import CurrentUser, get_password_hash
 
 router = APIRouter()
@@ -20,15 +21,26 @@ router = APIRouter()
 @router.post("/users/create", tags=["users"], response_model=UserResponse)
 async def create_user(user_auth: CurrentUser, user: UserIn, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
-        user_dict = user.dict()
-        user_dict["record_date"] = datetime.now()
-        user_dict["password"] = get_password_hash(user.password)
-        user_dict["recorder_id"] = user_auth.id
-        db_user = User(**user_dict)
-        db.add(db_user)
-        db.commit()
-        db.refresh(db_user)
-        return db_user
+        try:
+            user_exist = db.scalars(select(User).where(or_(User.phone_number == user.phone_number))).first()
+            user_dict = user.dict()
+            user_dict["record_date"] = datetime.now()
+            user_dict["password"] = get_password_hash(user.password)
+            user_dict["recorder_id"] = user_auth.id
+            if user_exist and not user_exist.is_enabled:
+                for key, value in user_dict.items():
+                    setattr(user_exist, key, value)
+                db.commit()
+                return user_exist
+            db_user = User(**user_dict)
+            db.add(db_user)
+            db.commit()
+            db.refresh(db_user)
+            return db_user
+        except IntegrityError as e:
+            raise HTTPException(status_code=400, detail=f"integrity error adding user {e}")
+        except SQLAlchemyError as e:
+            raise HTTPException(status_code=400, detail=f"error adding user {e}")
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
@@ -48,7 +60,7 @@ async def get_users(
             if users:
                 return users
             raise HTTPException(status_code=404, detail="user not found!")
-        users = db.scalars(select(User).limit(pagination.limit).offset(pagination.offset))
+        users = db.scalars(select(User).where(User.is_enabled).limit(pagination.limit).offset(pagination.offset))
         if users:
             return users
         raise HTTPException(status_code=404, detail="user not found!")
@@ -66,25 +78,31 @@ async def get_user(user_auth: CurrentUser, user_id: int, db: Session = Depends(g
 
 
 @router.put("/users/update/{user_id}", tags=["users"], response_model=UserResponse)
-async def update_user(user_auth: CurrentUser, user: UserUpdate, user_id: int, db: Session = Depends(get_session)):
+async def update_user(user_auth: CurrentUser, user: UserUpdate, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
-        db_user = db.scalars(select(User).where(User.id == user_id)).first()
-        if db_user is None:
-            raise HTTPException(status_code=404, detail="user not found!")
-        user_dict = user.model_dump(exclude_unset=True)
-        user_dict["record_date"] = datetime.now()
-        user_dict["recorder_id"] = user_auth.id
-        for key, value in user_dict.items():
-            setattr(db_user, key, value)
-        db.commit()
-        return db_user
+        try:
+            db_user = db.scalars(select(User).where(User.phone_number == user.phone_number)).first()
+            if not db_user:
+                raise HTTPException(status_code=404, detail="user not found!")
+            user_dict = user.model_dump(exclude_unset=True)
+            user_dict["password"] = get_password_hash(user.password)
+            user_dict["record_date"] = datetime.now()
+            user_dict["recorder_id"] = user_auth.id
+            for key, value in user_dict.items():
+                setattr(db_user, key, value)
+            db.commit()
+            return db_user
+        except IntegrityError as e:
+            raise HTTPException(status_code=400, detail=f"integrity error updating user {e}")
+        except SQLAlchemyError as e:
+            raise HTTPException(status_code=400, detail=f"error updating user {e}")
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
 @router.delete("/users/delete/{user_id}", tags=["users"])
 async def delete_user(user_auth: CurrentUser, user_id: int, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
-        db_user = db.scalars(select(User).where(User.id == user_id).where(User.is_enabled)).first()
+        db_user = db.scalars(select(User).where(User.id == user_id, User.is_enabled)).first()
         if db_user:
             db_user.is_enabled = False
             db.commit()

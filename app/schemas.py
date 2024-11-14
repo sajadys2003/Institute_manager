@@ -123,6 +123,7 @@ class UserUpdate(BaseModel):
 
 
 class UserOut(BaseModel):
+    id: int
     first_name: str
     last_name: str
     gender: str
@@ -168,31 +169,26 @@ class UserResponse(UserOut):
 
 class LessonsGroupIn(BaseModel):
     name: str
-    is_enabled: bool
 
 
 class LessonsGroupResponse(BaseModel):
     name: str
-    is_enabled: bool
     record_date: datetime
     recorder: UserOut
 
 
 class LessonsGroupUpdate(BaseModel):
     name: str | None
-    is_enabled: bool | None
 
 
 class LessonIn(BaseModel):
     name: str
     lesson_group_id: int
-    is_enabled: bool
 
 
 class LessonResponse(BaseModel):
     name: str
     lesson_group: LessonsGroupIn
-    is_enabled: bool
     record_date: datetime
     recorder: UserOut
 
@@ -200,19 +196,16 @@ class LessonResponse(BaseModel):
 class LessonUpdate(BaseModel):
     name: str | None
     lesson_group_id: int | None
-    is_enabled: bool | None
 
 
 class CourseIn(BaseModel):
     name: str
     lesson_id: int
-    is_enabled: bool
 
 
 class CourseResponse(BaseModel):
     name: str
     lesson: LessonIn
-    is_enabled: bool
     record_date: datetime
     recorder: UserOut
 
@@ -220,7 +213,6 @@ class CourseResponse(BaseModel):
 class CourseUpdate(BaseModel):
     name: str | None
     lesson_id: int | None
-    is_enabled: bool | None
 
 
 class CoursePriceIn(BaseModel):
@@ -293,16 +285,13 @@ class RollCallUpdate(BaseModel):
 
 class SurveyCategoryIn(BaseModel):
     name: str
-    is_enabled: bool
 
 
 class SurveyCategoryResponse(BaseModel):
     name: str
-    is_enabled: bool
     record_date: datetime
     recorder: UserOut
 
 
 class SurveyCategoryUpdate(BaseModel):
     name: str | None = None
-    is_enabled: bool | None = None
