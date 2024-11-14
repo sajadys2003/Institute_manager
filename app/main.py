@@ -9,9 +9,26 @@ from app.routers import (
     permissions,
     permission_groups,
     permission_group_defines,
-    # buildings,
-    # classrooms,
-    # presentations
+    lesson_groups,
+    lessons,
+    courses,
+    course_prices,
+    course_prerequisites,
+    buildings,
+    classrooms,
+    presentations,
+    selected_presentations,
+    presentation_sessions,
+    roll_calls,
+    survey_categories,
+    presentation_surveys,
+    exams,
+    exam_schedules,
+    selected_exams,
+    financial_categories,
+    pay_categories,
+    financial_transactions,
+    holidays
 )
 
 app = FastAPI()
@@ -30,8 +47,25 @@ include_routers(
         permissions.router,
         permission_groups.router,
         permission_group_defines.router,
-        # buildings.router,
-        # classrooms.router,
-        # presentations.router
+        lesson_groups.router,
+        lessons.router,
+        courses.router,
+        course_prices.router,
+        course_prerequisites.router,
+        buildings.router,
+        classrooms.router,
+        presentations.router,
+        selected_presentations.router,
+        presentation_sessions.router,
+        roll_calls.router,
+        survey_categories.router,
+        presentation_surveys.router,
+        exams.router,
+        exam_schedules.router,
+        selected_exams.router,
+        financial_categories.router,
+        pay_categories.router,
+        financial_transactions.router,
+        holidays.router
     ]
 )

@@ -427,6 +427,157 @@ class PresentationSurveyOut(BaseModel):
     record_date: datetime
 
 
+# exams
+class ExamIn(BaseModel):
+    course_id: int
+    price: Decimal
+
+
+class ExamUpdate(BaseModel):
+    course_id: int | None = None
+    price: Decimal | None = None
+
+
+class ExamOut(BaseModel):
+    id: int
+    course_id: int
+    price: Decimal
+    recorder_id: int
+    record_date: datetime
+
+
+# exam_schedules
+class ExamScheduleIn(BaseModel):
+    exam_id: int
+    start_date: date
+
+
+class ExamScheduleUpdate(BaseModel):
+    exam_id: int | None = None
+    start_date: date | None = None
+
+
+class ExamScheduleOut(BaseModel):
+    id: int
+    exam_id: int
+    start_date: datetime
+    recorder_id: int
+    record_date: datetime
+
+
+# selected_exams
+class SelectedExamIn(BaseModel):
+    student_id: int
+    exam_schedule_id: int
+    is_participated: bool | None = True
+    grade: Decimal | None = None
+
+
+class SelectedExamUpdate(BaseModel):
+    student_id: int | None
+    exam_schedule_id: int | None
+    is_participated: bool | None = None
+    grade: Decimal | None = None
+
+
+class SelectedExamOut(BaseModel):
+    id: int
+    student_id: int
+    exam_schedule_id: int
+    is_participated: bool
+    grade: Decimal | None
+    recorder_id: int
+    record_date: datetime
+
+
+# financial_categories
+class FinancialCategoryIn(BaseModel):
+    name: str
+
+
+class FinancialCategoryUpdate(BaseModel):
+    name: str | None = None
+
+
+class FinancialCategoryOut(BaseModel):
+    id: int
+    name: str
+    recorder_id: int
+    record_date: datetime
+
+
+# pay_categories
+class PayCategoryIn(BaseModel):
+    name: str
+
+
+class PayCategoryUpdate(BaseModel):
+    name: str | None = None
+
+
+class PayCategoryOut(BaseModel):
+    id: int
+    name: str
+    recorder_id: int
+    record_date: datetime
+
+
+# financial_transactions
+class FinancialTransactionIn(BaseModel):
+    user_id: int
+    financial_category_id: int
+    amount: Decimal
+    presentation_id: int | None = None
+    selected_presentation_id: int | None = None
+    selected_exam_id: int | None = None
+    transaction_date: datetime | None = None
+    pay_reference: str | None = None
+    pay_category_id: int
+
+
+class FinancialTransactionUpdate(BaseModel):
+    user_id: int | None = None
+    financial_category_id: int | None = None
+    amount: Decimal | None = None
+    presentation_id: int | None = None
+    selected_presentation_id: int | None = None
+    selected_exam_id: int | None = None
+    transaction_date: datetime | None = None
+    pay_reference: str | None = None
+    pay_category_id: int | None = None
+
+
+class FinancialTransactionOut(BaseModel):
+    id: int
+    user_id: int
+    financial_category_id: int
+    amount: Decimal
+    presentation_id: int | None
+    selected_presentation_id: int | None
+    selected_exam_id: int | None
+    transaction_date: datetime | None
+    pay_reference: str | None
+    pay_category_id: int
+    recorder_id: int
+    record_date: datetime
+
+
+# holidays
+class HolidayIn(BaseModel):
+    holiday_date: datetime
+
+
+class HolidayUpdate(BaseModel):
+    holiday_date: datetime| None = None
+
+
+class HolidayOut(BaseModel):
+    id: int
+    holiday_date: datetime
+    recorder_id: int
+    record_date: datetime
+
+
 # response models
 class RoleResponse(RoleOut):
     recorder: UserOut | None
@@ -520,4 +671,42 @@ class PresentationSurveyResponse(PresentationSurveyOut):
     student: UserOut
     presentation: PresentationOut
     survey_category: SurveyCategoryOut
+    recorder: UserOut
+
+
+class ExamResponse(ExamOut):
+    course: CourseOut
+    recorder: UserOut
+
+
+class ExamScheduleResponse(ExamScheduleOut):
+    exam: ExamOut
+    recorder: UserOut
+
+
+class SelectedExamResponse(SelectedExamOut):
+    exam_schedule: ExamScheduleOut
+    student: UserOut
+    recorder: UserOut
+
+
+class FinancialCategoryResponse(FinancialCategoryOut):
+    recorder: UserOut
+
+
+class PayCategoryResponse(PayCategoryOut):
+    recorder: UserOut
+
+
+class FinancialTransactionResponse(FinancialTransactionOut):
+    user: UserOut
+    financial_category: FinancialCategoryOut
+    presentation: PresentationOut | None
+    selected_presentation: SelectedPresentationOut | None
+    selected_exam: SelectedExamOut | None
+    pay_category: PayCategoryOut
+    recorder: UserOut
+
+
+class HolidayResponse(HolidayOut):
     recorder: UserOut

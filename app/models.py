@@ -864,19 +864,19 @@ class SelectedExam(Base):
     __tablename__ = "selected_exams"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    exam_schedule_id = mapped_column(ForeignKey("exam_schedules.id"), nullable=False)
     student_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    is_participated: Mapped[bool]
+    exam_schedule_id = mapped_column(ForeignKey("exam_schedules.id"), nullable=False)
+    is_participated: Mapped[bool] = mapped_column(default=True)
     grade: Mapped[Decimal] = mapped_column(nullable=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
 
-    exam_schedule: Mapped["ExamSchedule"] = relationship(
-        back_populates="selected_exams"
-    )
     student: Mapped["User"] = relationship(
         back_populates="student_of_selected_exams",
         foreign_keys=[student_id]
+    )
+    exam_schedule: Mapped["ExamSchedule"] = relationship(
+        back_populates="selected_exams"
     )
     recorder: Mapped["User"] = relationship(
         back_populates="recorder_of_selected_exams",
@@ -891,8 +891,8 @@ class SelectedExam(Base):
         return (
             f"SelectedExam("
             f"id={self.id!r}, "
-            f"exam_schedule_id={self.exam_schedule_id!r}, "
             f"student_id={self.student_id!r}, "
+            f"exam_schedule_id={self.exam_schedule_id!r}, "
             f"is_participated={self.is_participated!r}, "
             f"grade={self.grade!r}, "
             f"recorder_id={self.recorder_id!r}, "
@@ -965,7 +965,7 @@ class FinancialTransaction(Base):
     selected_presentation_id = mapped_column(ForeignKey("selected_presentations.id"))
     selected_exam_id = mapped_column(ForeignKey("selected_exams.id"))
     transaction_date: Mapped[datetime] = mapped_column(default=datetime.now())
-    pay_reference: Mapped[str]
+    pay_reference: Mapped[str] = mapped_column(nullable=True)
     pay_category_id = mapped_column(ForeignKey("pay_categories.id"), nullable=False)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
