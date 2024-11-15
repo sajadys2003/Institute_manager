@@ -45,8 +45,9 @@ async def get_course_prerequisites(
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         if search:
             course_prerequisite = db.scalars(
-                select(CoursePrerequisite).where(or_(CoursePrerequisite.prerequisite_id == search,
-                                                     CoursePrerequisite.main_course == search))).first()
+                select(CoursePrerequisite).where(or_(
+                    CoursePrerequisite.prerequisite_id == search,
+                    CoursePrerequisite.main_course == search)).limit(pagination.limit).offset(pagination.offset))
             return course_prerequisite
         course_prerequisites = db.scalars(select(CoursePrerequisite).limit(pagination.limit).offset(pagination.offset))
         if course_prerequisites:

@@ -43,9 +43,9 @@ async def get_roll_call(
         user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), search: int | None = None):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         if search:
-            roll_call = db.scalars(
-                select(RollCall).where(or_(RollCall.student_id == search,
-                                           RollCall.presentation_session_id == search))).first()
+            roll_call = db.scalars(select(RollCall).where(or_(
+                RollCall.student_id == search, RollCall.presentation_session_id == search)).
+                                   limit(pagination.limit).offset(pagination.offset))
             return roll_call
         roll_calls = db.scalars(select(RollCall).limit(pagination.limit).offset(pagination.offset))
         if roll_calls:

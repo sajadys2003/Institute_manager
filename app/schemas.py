@@ -172,6 +172,7 @@ class LessonsGroupIn(BaseModel):
 
 
 class LessonsGroupResponse(BaseModel):
+    id: int
     name: str
     record_date: datetime
     recorder: UserOut
@@ -187,6 +188,7 @@ class LessonIn(BaseModel):
 
 
 class LessonResponse(BaseModel):
+    id: int
     name: str
     lesson_group: LessonsGroupIn
     record_date: datetime
@@ -204,6 +206,7 @@ class CourseIn(BaseModel):
 
 
 class CourseResponse(BaseModel):
+    id: int
     name: str
     lesson: LessonIn
     record_date: datetime
@@ -224,6 +227,7 @@ class CoursePriceIn(BaseModel):
 
 
 class CoursePriceResponse(BaseModel):
+    id: int
     course: CourseIn
     public_price: float
     private_price: float
@@ -246,6 +250,7 @@ class CoursePrerequisiteIn(BaseModel):
 
 
 class CoursePrerequisiteResponse(BaseModel):
+    id: int
     main_course: CourseIn
     prerequisite: CourseIn
     record_date: datetime
@@ -266,6 +271,7 @@ class RollCallIn(BaseModel):
 
 
 class RollCallResponse(BaseModel):
+    id: int
     presentation_session: int
     student: UserOut
     is_present: bool
@@ -288,6 +294,7 @@ class SurveyCategoryIn(BaseModel):
 
 
 class SurveyCategoryResponse(BaseModel):
+    id: int
     name: str
     record_date: datetime
     recorder: UserOut
@@ -295,3 +302,27 @@ class SurveyCategoryResponse(BaseModel):
 
 class SurveyCategoryUpdate(BaseModel):
     name: str | None = None
+
+
+class PresentationSurveyIn(BaseModel):
+    student_id: int
+    presentation_id: int
+    survey_category_id: int
+    score: int
+
+
+class PresentationSurveyResponse(BaseModel):
+    id: int
+    student_id: UserOut
+    presentation_id: Presentation
+    survey_category_id: SurveyCategoryResponse
+    score: int
+    recorder_id: int
+    record_date: datetime
+
+
+class PresentationSurveyUpdate(BaseModel):
+    student_id: int | None = None
+    presentation_id: int | None = None
+    survey_category_id: int | None = None
+    score: int | None = None

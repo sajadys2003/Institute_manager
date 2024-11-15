@@ -243,7 +243,12 @@ class User(Base):
         back_populates="recorder"
     )
     student_of_presentation_surveys: Mapped[list["PresentationSurvey"]] = relationship(
-        back_populates="student"
+        back_populates="student",
+        foreign_keys="[PresentationSurvey.student_id]"
+    )
+    recorder_of_presentation_surveys: Mapped[list["PresentationSurvey"]] = relationship(
+        back_populates="student",
+        foreign_keys="[PresentationSurvey.recorder_id]"
     )
     recorder_of_exams: Mapped[list["Exam"]] = relationship(
         back_populates="recorder"
@@ -752,7 +757,7 @@ class SurveyCategory(Base):
     )
 
     presentation_surveys: Mapped[list["PresentationSurvey"]] = relationship(
-        back_populates="survey_category"
+        back_populates="survey_category",
     )
 
     def __repr__(self) -> str:
@@ -773,16 +778,22 @@ class PresentationSurvey(Base):
     presentation_id = mapped_column(ForeignKey("presentations.id"), nullable=False, primary_key=True)
     survey_category_id = mapped_column(ForeignKey("survey_categories.id", ondelete="RESTRICT"), nullable=False)
     score: Mapped[int]
+    recorder_id: Mapped[int] = mapped_column(ForeignKey("User.id"))
     record_date: Mapped[datetime]
 
     student: Mapped["User"] = relationship(
-        back_populates="student_of_presentation_surveys"
+        back_populates="student_of_presentation_surveys",
+        foreign_keys=[student_id]
     )
     presentation: Mapped["Presentation"] = relationship(
         back_populates="presentation_surveys"
     )
     survey_category: Mapped["SurveyCategory"] = relationship(
         back_populates="presentation_surveys"
+    )
+    recorder: Mapped["User"] = relationship(
+        back_populates="recorder_of_presentation_surveys",
+        ForeignKey=[recorder_id]
     )
 
     def __repr__(self) -> str:
