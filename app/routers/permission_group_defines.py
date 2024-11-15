@@ -31,8 +31,11 @@ async def get_all_permission_group_defines(
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
         criteria = and_(
-            PermissionGroupDefine.permission_group_id == permission_group_id or not permission_id,
-            PermissionGroupDefine.permission_id == permission_id or not permission_id
+            PermissionGroupDefine.permission_group_id == permission_group_id
+            if (permission_group_id or permission_group_id == 0) else True,
+
+            PermissionGroupDefine.permission_id == permission_id
+            if (permission_id or permission_id == 0) else True
         )
         stored_records = db.query(PermissionGroupDefine).where(criteria)
         return stored_records.offset(page.offset).limit(page.limit).all()

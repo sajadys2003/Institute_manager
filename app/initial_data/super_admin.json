@@ -1,0 +1,14 @@
+{
+  "first_name": "super",
+  "last_name": "admin",
+  "father_name": "dad",
+  "gender": "male",
+  "date_of_birth": "2020-11-02T00:00:00",
+  "national_code": "7777",
+  "phone_number": "1234",
+  "recruitment_date": "2024-11-15T10:43:26.080947",
+  "password": "$2b$12$adzdslB/v9Goc3HkQiYZV.jpm4aTMIMXPv2NzLQ.ErYXl2uBSdynu",
+  "is_super_admin": true,
+  "is_panel_user": true,
+  "record_date": "2024-11-15T10:43:26.080953"
+}

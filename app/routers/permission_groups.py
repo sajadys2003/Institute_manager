@@ -31,7 +31,7 @@ async def get_all_permission_groups(
     if authorized(current_user, operation):
 
         if q := commons.q:
-            criteria = PermissionGroup.name.contains(q)
+            criteria = PermissionGroup.name.ilike(q)
             stored_records = db.query(PermissionGroup).where(criteria)
 
         else:

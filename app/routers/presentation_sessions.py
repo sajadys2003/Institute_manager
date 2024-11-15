@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, PageDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
 router = APIRouter(prefix="/presentation_sessions")
 
@@ -24,17 +25,20 @@ async def get_all_presentation_sessions(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,
-        presentation_id: int | None = None
+        presentation_id: int | None = None,
+        classroom_id: int | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+        criteria = and_(
+            PresentationSession.presentation_id == presentation_id
+            if (presentation_id or presentation_id == 0) else True,
 
-        if presentation_id:
-            criteria = PresentationSession.presentation_id == presentation_id
-            stored_records = db.query(PresentationSession).where(criteria)
+            PresentationSession.classroom_id == classroom_id
+            if (classroom_id or classroom_id == 0) else True
+        )
+        stored_records = db.query(PresentationSession).where(criteria)
 
-        else:
-            stored_records = db.query(PresentationSession)
         return stored_records.offset(page.offset).limit(page.limit).all()
 
 

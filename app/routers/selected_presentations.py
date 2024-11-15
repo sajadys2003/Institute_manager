@@ -1,7 +1,6 @@
 from app.models import SelectedPresentation
 from app.schemas import SelectedPresentationIn, SelectedPresentationUpdate, SelectedPresentationResponse
 
-
 from .security import CurrentUer, authorized
 from inspect import currentframe
 from fastapi import APIRouter
@@ -9,6 +8,7 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, PageDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
 router = APIRouter(prefix="/selected_presentations")
 
@@ -25,17 +25,20 @@ async def get_all_selected_presentations(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,
-        presentation_id: int | None = None
+        presentation_id: int | None = None,
+        student_id: int | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+        criteria = and_(
+            SelectedPresentation.presentation_id == presentation_id
+            if (presentation_id or presentation_id == 0) else True,
 
-        if presentation_id:
-            criteria = SelectedPresentation.presentation_id == presentation_id
-            stored_records = db.query(SelectedPresentation).where(criteria)
+            SelectedPresentation.student_id == student_id
+            if (student_id or student_id == 0) else True
+        )
+        stored_records = db.query(SelectedPresentation).where(criteria)
 
-        else:
-            stored_records = db.query(SelectedPresentation)
         return stored_records.offset(page.offset).limit(page.limit).all()
 
 

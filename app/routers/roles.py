@@ -30,7 +30,7 @@ async def get_all_roles(
     if authorized(current_user, operation):
 
         if q := commons.q:
-            criteria = Role.name.contains(q)
+            criteria = Role.name.ilike(q)
             stored_records = db.query(Role).where(criteria)
 
         else:

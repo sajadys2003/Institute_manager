@@ -30,7 +30,7 @@ async def get_all_buildings(
     if authorized(current_user, operation):
 
         if q := commons.q:
-            criteria = Building.name.contains(q)
+            criteria = Building.name.ilike(q)
             stored_records = db.query(Building).where(criteria)
 
         else:

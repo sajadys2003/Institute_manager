@@ -30,7 +30,7 @@ async def get_all_pay_categories(
     if authorized(current_user, operation):
 
         if q := commons.q:
-            criteria = PayCategory.name.contains(q)
+            criteria = PayCategory.name.ilike(q)
             stored_records = db.query(PayCategory).where(criteria)
 
         else:

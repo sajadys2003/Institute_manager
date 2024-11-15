@@ -29,12 +29,9 @@ async def get_all_course_prices(
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
 
-        if course_id:
-            criteria = CoursePrice.course_id == course_id
-            stored_records = db.query(CoursePrice).where(criteria)
+        criteria = CoursePrice.course_id == course_id if (course_id or course_id == 0) else True
+        stored_records = db.query(CoursePrice).where(criteria)
 
-        else:
-            stored_records = db.query(CoursePrice)
         return stored_records.offset(page.offset).limit(page.limit).all()
 
 

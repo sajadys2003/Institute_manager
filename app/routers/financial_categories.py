@@ -30,7 +30,7 @@ async def get_all_financial_categories(
     if authorized(current_user, operation):
 
         if q := commons.q:
-            criteria = FinancialCategory.name.contains(q)
+            criteria = FinancialCategory.name.ilike(q)
             stored_records = db.query(FinancialCategory).where(criteria)
 
         else:

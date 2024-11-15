@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, CommonsDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
 router = APIRouter(prefix="/courses")
 
@@ -23,17 +24,19 @@ async def get_by_id(db: SessionDep, course_id: int) -> Course:
 async def get_all_courses(
         db: SessionDep,
         commons: CommonsDep,
-        current_user: CurrentUer
+        current_user: CurrentUer,
+        lesson_id: int | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+        q = commons.q
+        criteria = and_(
+            Course.name.ilike(q) if q else True,
 
-        if q := commons.q:
-            criteria = Course.name.contains(q)
-            stored_records = db.query(Course).where(criteria)
-
-        else:
-            stored_records = db.query(Course)
+            Course.lesson_id == lesson_id
+            if (lesson_id or lesson_id == 0) else True
+        )
+        stored_records = db.query(Course).where(criteria)
         return stored_records.offset(commons.offset).limit(commons.limit).all()
 
 

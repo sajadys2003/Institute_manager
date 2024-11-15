@@ -32,8 +32,11 @@ async def get_all_course_prerequisites(
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
         criteria = and_(
-            CoursePrerequisite.main_course_id == main_course_id or not main_course_id,
-            CoursePrerequisite.prerequisite_id == prerequisite_id or not prerequisite_id
+            CoursePrerequisite.main_course_id == main_course_id
+            if (main_course_id or main_course_id == 0) else True,
+
+            CoursePrerequisite.prerequisite_id == prerequisite_id
+            if (prerequisite_id or prerequisite_id == 0) else True
         )
         stored_records = db.query(CoursePrerequisite).where(criteria)
         return stored_records.offset(page.offset).limit(page.limit).all()

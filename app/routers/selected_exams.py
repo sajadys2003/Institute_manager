@@ -1,7 +1,6 @@
 from app.models import SelectedExam
 from app.schemas import SelectedExamIn, SelectedExamUpdate, SelectedExamResponse
 
-
 from .security import CurrentUer, authorized
 from inspect import currentframe
 from fastapi import APIRouter
@@ -9,6 +8,7 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, PageDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
 router = APIRouter(prefix="/selected_exams")
 
@@ -25,17 +25,20 @@ async def get_all_selected_exams(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,
+        student_id: int | None = None,
         exam_schedule_id: int | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+        criteria = and_(
+            SelectedExam.student_id == student_id
+            if (student_id or student_id == 0) else True,
 
-        if exam_schedule_id:
-            criteria = SelectedExam.exam_schedule_id == exam_schedule_id
-            stored_records = db.query(SelectedExam).where(criteria)
+            SelectedExam.exam_schedule_id == exam_schedule_id
+            if (exam_schedule_id or exam_schedule_id == 0) else True
+        )
+        stored_records = db.query(SelectedExam).where(criteria)
 
-        else:
-            stored_records = db.query(SelectedExam)
         return stored_records.offset(page.offset).limit(page.limit).all()
 
 

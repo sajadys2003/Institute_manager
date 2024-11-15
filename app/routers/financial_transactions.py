@@ -28,13 +28,9 @@ async def get_all_financial_transactions(
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+        criteria = FinancialTransaction.user_id == user_id if (user_id or user_id == 0) else True
+        stored_records = db.query(FinancialTransaction).where(criteria)
 
-        if user_id:
-            criteria = FinancialTransaction.user_id == user_id
-            stored_records = db.query(FinancialTransaction).where(criteria)
-
-        else:
-            stored_records = db.query(FinancialTransaction)
         return stored_records.offset(page.offset).limit(page.limit).all()
 
 

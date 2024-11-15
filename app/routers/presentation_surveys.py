@@ -1,4 +1,4 @@
-from app.models import PresentationSurvey
+from app.models import PresentationSurvey, Presentation
 from app.schemas import PresentationSurveyIn, PresentationSurveyUpdate, PresentationSurveyResponse
 
 from .security import CurrentUer, authorized
@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, PageDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
 router = APIRouter(prefix="/presentation_surveys")
 
@@ -24,17 +25,24 @@ async def get_all_presentation_surveys(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,
-        presentation_id: int | None = None
+        student_id: int | None = None,
+        presentation_id: int | None = None,
+        survey_category_id: int | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+        criteria = and_(
+            PresentationSurvey.student_id == student_id
+            if (student_id or student_id == 0) else True,
 
-        if presentation_id:
-            criteria = PresentationSurvey.presentation_id == presentation_id
-            stored_records = db.query(PresentationSurvey).where(criteria)
+            PresentationSurvey.presentation_id == presentation_id
+            if (presentation_id or presentation_id == 0) else True,
 
-        else:
-            stored_records = db.query(PresentationSurvey)
+            PresentationSurvey.survey_category_id == survey_category_id
+            if (survey_category_id or survey_category_id == 0) else True
+        )
+        stored_records = db.query(PresentationSurvey).where(criteria)
+
         return stored_records.offset(page.offset).limit(page.limit).all()
 
 

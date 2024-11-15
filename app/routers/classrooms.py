@@ -1,7 +1,6 @@
 from app.models import Classroom
 from app.schemas import ClassroomIn, ClassroomUpdate, ClassroomResponse
 
-
 from .security import CurrentUer, authorized
 from inspect import currentframe
 from fastapi import APIRouter
@@ -9,6 +8,7 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, CommonsDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
 router = APIRouter(prefix="/classrooms")
 
@@ -24,18 +24,24 @@ async def get_by_id(db: SessionDep, lesson_id: int) -> Classroom:
 async def get_all_classrooms(
         db: SessionDep,
         commons: CommonsDep,
-        current_user: CurrentUer
-
+        current_user: CurrentUer,
+        building_id: int | None = None,
+        lesson_group_id: int | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+        q = commons.q
+        criteria = and_(
+            Classroom.name.ilike(q) if q else True,
 
-        if q := commons.q:
-            criteria = Classroom.name.contains(q)
-            stored_records = db.query(Classroom).where(criteria)
+            Classroom.building_id == building_id
+            if (building_id or building_id == 0) else True,
 
-        else:
-            stored_records = db.query(Classroom)
+            Classroom.lesson_group_id == lesson_group_id
+            if (lesson_group_id or lesson_group_id == 0) else True
+        )
+        stored_records = db.query(Classroom).where(criteria)
+
         return stored_records.offset(commons.offset).limit(commons.limit).all()
 
 
@@ -72,7 +78,6 @@ async def create_classroom(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
 
 
-
 @router.put(path="/{classroom_id}", response_model=ClassroomResponse)
 async def update_classroom(
         db: SessionDep,
@@ -94,7 +99,6 @@ async def update_classroom(
             return stored_record
         except IntegrityError as e:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
-
 
 
 @router.delete(path="/{classroom_id}", status_code=status.HTTP_204_NO_CONTENT)

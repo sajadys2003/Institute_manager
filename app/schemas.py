@@ -24,22 +24,10 @@ class RoleOut(BaseModel):
 
 
 # permissions
-class PermissionIn(BaseModel):
-    name: str
-    parent_id: int | None = None
-
-
-class PermissionUpdate(BaseModel):
-    name: str | None = None
-    parent_id: int | None = None
-
-
 class PermissionOut(BaseModel):
     id: int
     name: str
     parent_id: int | None
-    is_enabled: bool
-    record_date: datetime
 
 
 # permission_groups
@@ -65,8 +53,8 @@ class PermissionGroupDefineIn(BaseModel):
 
 
 class PermissionGroupDefineUpdate(BaseModel):
-    permission_id: int | None = None
     permission_group_id: int | None = None
+    permission_id: int | None = None
 
 
 class PermissionGroupDefineOut(BaseModel):
@@ -76,6 +64,7 @@ class PermissionGroupDefineOut(BaseModel):
 
 # users
 class UserIn(BaseModel):
+    phone_number: str
     password: str
     first_name: str
     last_name: str
@@ -83,7 +72,6 @@ class UserIn(BaseModel):
     father_name: str
     date_of_birth: date | None = None
     national_code: str
-    phone_number: str
     role_id: int | None = None
     recruitment_date: datetime | None = None
     is_super_admin: bool | None = False
@@ -93,6 +81,7 @@ class UserIn(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    phone_number: str | None = None
     password: str | None = None
     gender: str | None = None
     first_name: str | None = None
@@ -100,7 +89,6 @@ class UserUpdate(BaseModel):
     father_name: str | None = None
     date_of_birth: date | None = None
     national_code: str | None = None
-    phone_number: str | None = None
     role_id: int | None = None
     recruitment_date: datetime | None = None
     is_super_admin: bool | None = None
@@ -111,13 +99,13 @@ class UserUpdate(BaseModel):
 
 class UserOut(BaseModel):
     id: int
+    phone_number: str
     first_name: str
     last_name: str
     gender: str
     father_name: str
     date_of_birth: date
     national_code: str
-    phone_number: str
     role_id: int | None
     recruitment_date: datetime
     is_super_admin: bool | None
@@ -585,7 +573,6 @@ class RoleResponse(RoleOut):
 
 class PermissionResponse(PermissionOut):
     parent: PermissionOut | None
-    recorder: UserOut | None
 
 
 class PermissionGroupResponse(PermissionGroupOut):
@@ -593,8 +580,8 @@ class PermissionGroupResponse(PermissionGroupOut):
 
 
 class PermissionGroupDefineResponse(PermissionGroupDefineOut):
-    permission: PermissionOut
     permission_group: PermissionGroupOut
+    permission: PermissionOut
     recorder: UserOut | None
 
 

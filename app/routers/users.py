@@ -105,17 +105,23 @@ async def create_user(
             except IntegrityError as e:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
 
-@router.put(path="/{user_id}", response_model=UserResponse)
+@router.put(path="/{phone_number}", response_model=UserResponse)
 async def update_user(
         db: SessionDep,
-        user_id: int,
+        phone_number: int,
         data: UserUpdate,
         current_user: CurrentUer
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
 
-        to_update = await get_by_id(db, user_id)
+        criteria = and_(
+            User.phone_number == phone_number,
+            User.is_enabled
+            )
+        to_update = db.query(User).where(criteria).scalar()
+        if not to_update:
+            raise HTTPException(status_code=404, detail="Not found")
 
         if password := data.password:
             data.password = get_password_hash(password)
@@ -126,13 +132,14 @@ async def update_user(
         if data.phone_number:
             criteria = and_(
                 User.phone_number == data.phone_number,
-                User.id != user_id
+                User.phone_number != to_update.phone_number
             )
             existing_user = db.query(User).where(criteria).scalar()
             if existing_user:
                 if existing_user.is_enabled:
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
                 else:
+                    to_update.is_enabled = False
                     existing_user.is_enabled = True
                     to_update = existing_user
 

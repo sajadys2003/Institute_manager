@@ -1,8 +1,5 @@
-from sqlalchemy import ForeignKey
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey, create_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from datetime import datetime
 from datetime import date
 from decimal import Decimal
@@ -46,8 +43,6 @@ class Permission(Base):
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     name: Mapped[str] = mapped_column(unique=True)
     parent_id = mapped_column(ForeignKey("permissions.id"))
-    recorder_id = mapped_column(ForeignKey("users.id"))
-    record_date: Mapped[datetime]
 
     children: Mapped[list["Permission"]] = relationship(
         back_populates="parent",
@@ -56,9 +51,6 @@ class Permission(Base):
     parent: Mapped["Permission"] = relationship(
         back_populates="children",
         remote_side=[id]
-    )
-    recorder: Mapped["User"] = relationship(
-        back_populates="recorder_of_permissions"
     )
     permission_group_defines: Mapped[list["PermissionGroupDefine"]] = relationship(
         back_populates="permission",
@@ -70,9 +62,7 @@ class Permission(Base):
             f"Permission("
             f"id={self.id!r}, "
             f"name={self.name!r}, "
-            f"parent_id={self.parent_id!r}, "
-            f"recorder_id={self.recorder_id!r}, "
-            f"record_date={self.record_date!r})"
+            f"parent_id={self.parent_id!r})"
         )
 
 
@@ -112,7 +102,7 @@ class PermissionGroupDefine(Base):
     __tablename__ = "permission_group_defines"
 
     permission_group_id = mapped_column(ForeignKey("permission_groups.id"), primary_key=True, nullable=False)
-    permission_id = mapped_column(ForeignKey("permissions.id"),primary_key=True, nullable=False)
+    permission_id = mapped_column(ForeignKey("permissions.id"), primary_key=True, nullable=False)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -140,6 +130,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
+    phone_number: Mapped[str] = mapped_column(unique=True)
     password: Mapped[str]  # hashed_password
     first_name: Mapped[str]
     last_name: Mapped[str]
@@ -147,7 +138,6 @@ class User(Base):
     father_name: Mapped[str]
     date_of_birth: Mapped[date] = mapped_column(nullable=True)
     national_code: Mapped[str]
-    phone_number: Mapped[str] = mapped_column(unique=True)
     role_id = mapped_column(ForeignKey("roles.id"))
     recruitment_date: Mapped[datetime] = mapped_column(nullable=True)
     is_super_admin: Mapped[bool] = mapped_column(default=False)
@@ -175,9 +165,6 @@ class User(Base):
     recorder_of_roles: Mapped[list["Role"]] = relationship(
         back_populates="recorder",
         foreign_keys="[Role.recorder_id]"
-    )
-    recorder_of_permissions: Mapped[list["Permission"]] = relationship(
-        back_populates="recorder"
     )
     recorder_of_permission_groups: Mapped[list["PermissionGroup"]] = relationship(
         back_populates="recorder",
@@ -290,6 +277,7 @@ class User(Base):
         return (
             f"User("
             f"id={self.id!r}, "
+            f"phone_number={self.phone_number!r}, "
             f"password={self.password}, "
             f"first_name={self.first_name!r}, "
             f"last_name={self.last_name!r}, "
@@ -378,7 +366,6 @@ class Course(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     name: Mapped[str] = mapped_column(unique=True)
-    # double check ...
     lesson_id = mapped_column(ForeignKey("lessons.id"))
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
@@ -460,8 +447,8 @@ class CoursePrice(Base):
 class CoursePrerequisite(Base):
     __tablename__ = "course_prerequisites"
 
-    main_course_id = mapped_column(ForeignKey("courses.id"),primary_key=True, nullable=False)
-    prerequisite_id = mapped_column(ForeignKey("courses.id"),primary_key=True, nullable=False)
+    main_course_id = mapped_column(ForeignKey("courses.id"), primary_key=True, nullable=False)
+    prerequisite_id = mapped_column(ForeignKey("courses.id"), primary_key=True, nullable=False)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -1040,7 +1027,6 @@ class Login(Base):
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     user_id = mapped_column(ForeignKey("users.id"), nullable=False)
     last_login_date: Mapped[datetime]
-    record_date: Mapped[datetime]
 
     user: Mapped["User"] = relationship(
         back_populates="user_of_logins"
@@ -1051,6 +1037,11 @@ class Login(Base):
             f"Login("
             f"id={self.id!r}, "
             f"user_id={self.user_id!r}, "
-            f"last_login_date={self.last_login_date!r}, "
-            f"record_date={self.record_date!r})"
+            f"last_login_date={self.last_login_date!r})"
         )
+
+
+pg_url = "postgresql+psycopg://postgres:password@localhost:5432/institute"
+engine = create_engine(pg_url)
+
+Base.metadata.create_all(bind=engine)  # creates all tables in our database

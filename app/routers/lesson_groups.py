@@ -30,7 +30,7 @@ async def get_all_lesson_groups(
     if authorized(current_user, operation):
 
         if q := commons.q:
-            criteria = LessonGroup.name.contains(q)
+            criteria = LessonGroup.name.ilike(q)
             stored_records = db.query(LessonGroup).where(criteria)
 
         else:

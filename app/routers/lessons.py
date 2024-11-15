@@ -1,7 +1,6 @@
 from app.models import Lesson
 from app.schemas import LessonIn, LessonUpdate, LessonResponse
 
-
 from .security import CurrentUer, authorized
 from inspect import currentframe
 from fastapi import APIRouter
@@ -9,6 +8,7 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, CommonsDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
 router = APIRouter(prefix="/lessons")
 
@@ -24,18 +24,19 @@ async def get_by_id(db: SessionDep, lesson_id: int) -> Lesson:
 async def get_all_lessons(
         db: SessionDep,
         commons: CommonsDep,
-        current_user: CurrentUer
-
+        current_user: CurrentUer,
+        lesson_group_id: int | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+        q = commons.q
+        criteria = and_(
+            Lesson.name.ilike(q) if q else True,
 
-        if q := commons.q:
-            criteria = Lesson.name.contains(q)
-            stored_records = db.query(Lesson).where(criteria)
-
-        else:
-            stored_records = db.query(Lesson)
+            Lesson.lesson_group_id == lesson_group_id
+            if (lesson_group_id or lesson_group_id == 0) else True
+        )
+        stored_records = db.query(Lesson).where(criteria)
         return stored_records.offset(commons.offset).limit(commons.limit).all()
 
 
@@ -72,7 +73,6 @@ async def create_lesson(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
 
 
-
 @router.put(path="/{lesson_id}", response_model=LessonResponse)
 async def update_lesson(
         db: SessionDep,
@@ -94,7 +94,6 @@ async def update_lesson(
             return stored_record
         except IntegrityError as e:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
-
 
 
 @router.delete(path="/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)

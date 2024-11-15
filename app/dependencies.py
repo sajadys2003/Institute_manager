@@ -1,13 +1,7 @@
-from sqlalchemy import create_engine
-from app.models import Base
+from app.models import engine
 from sqlalchemy.orm import Session
 from typing import Annotated
 from fastapi import Depends
-
-url = "postgresql+psycopg://postgres:password@localhost:5432/institute"
-engine = create_engine(url)
-
-Base.metadata.create_all(bind=engine)
 
 
 def get_session():
@@ -31,7 +25,7 @@ PageDep = Annotated[Pagination, Depends(Pagination)]
 class CommonQueryParams(Pagination):
     def __init__(self, q: str | None = None, page: int = 1, size: int = 20):
         super().__init__(page, size)
-        self.q = q.strip() if q else None
+        self.q = f"%{q.strip()}%" if q else None
 
 
 CommonsDep = Annotated[CommonQueryParams, Depends(CommonQueryParams)]

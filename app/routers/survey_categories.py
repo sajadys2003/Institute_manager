@@ -30,7 +30,7 @@ async def get_all_survey_categories(
     if authorized(current_user, operation):
 
         if q := commons.q:
-            criteria = SurveyCategory.name.contains(q)
+            criteria = SurveyCategory.name.ilike(q)
             stored_records = db.query(SurveyCategory).where(criteria)
 
         else:

@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, PageDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
 router = APIRouter(prefix="/roll_calls")
 
@@ -24,17 +25,20 @@ async def get_all_roll_calls(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,
+        presentation_session_id: int | None = None,
         student_id: int | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+        criteria = and_(
+            RollCall.presentation_session_id == presentation_session_id
+            if (presentation_session_id or presentation_session_id == 0) else True,
 
-        if student_id:
-            criteria = RollCall.student_id == student_id
-            stored_records = db.query(RollCall).where(criteria)
+            RollCall.student_id == student_id
+            if (student_id or student_id == 0) else True
+        )
+        stored_records = db.query(RollCall).where(criteria)
 
-        else:
-            stored_records = db.query(RollCall)
         return stored_records.offset(page.offset).limit(page.limit).all()
 
 
