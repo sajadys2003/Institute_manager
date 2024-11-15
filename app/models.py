@@ -1003,7 +1003,7 @@ class Holiday(Base):
     __tablename__ = "holidays"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    holiday_date: Mapped[datetime]
+    holiday_date: Mapped[date]
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
