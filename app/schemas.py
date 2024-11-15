@@ -314,7 +314,7 @@ class PresentationSurveyIn(BaseModel):
 class PresentationSurveyResponse(BaseModel):
     id: int
     student: UserOut
-    presentation: Presentation
+    presentation: int
     survey_category: SurveyCategoryResponse
     score: int
     recorder: int
@@ -350,7 +350,7 @@ class PayCategoryIn(BaseModel):
 class PayCategoryResponse(BaseModel):
     id: int
     name: str
-    recorder = UserOut
+    recorder: UserOut
     record_date: datetime
 
 
@@ -372,12 +372,12 @@ class FinancialTransactionIn(BaseModel):
 
 class FinancialTransactionResponse(BaseModel):
     id: int
-    user = UserOut
+    user: UserOut
     financial_category: FinancialCategoryResponse
     amount: Decimal
-    presentation: Presentation
-    selected_presentation: SelevtedPresentation
-    selected_exam: SelectedExam
+    presentation: int
+    selected_presentation: int
+    selected_exam: int
     transaction_date: datetime
     pay_reference: str
     pay_category: PayCategoryResponse
@@ -395,3 +395,9 @@ class FinancialTransactionUpdate(BaseModel):
     transaction_date: datetime | None = None
     pay_reference: str | None = None
     pay_category_id: int | None = None
+
+
+class LoginResponse(BaseModel):
+    id: int
+    user: UserOut
+    login_date: datetime

@@ -247,7 +247,7 @@ class User(Base):
         foreign_keys="[PresentationSurvey.student_id]"
     )
     recorder_of_presentation_surveys: Mapped[list["PresentationSurvey"]] = relationship(
-        back_populates="student",
+        back_populates="recorder",
         foreign_keys="[PresentationSurvey.recorder_id]"
     )
     recorder_of_exams: Mapped[list["Exam"]] = relationship(
@@ -778,7 +778,7 @@ class PresentationSurvey(Base):
     presentation_id = mapped_column(ForeignKey("presentations.id"), nullable=False, primary_key=True)
     survey_category_id = mapped_column(ForeignKey("survey_categories.id", ondelete="RESTRICT"), nullable=False)
     score: Mapped[int]
-    recorder_id: Mapped[int] = mapped_column(ForeignKey("User.id"))
+    recorder_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
     student: Mapped["User"] = relationship(
@@ -793,7 +793,7 @@ class PresentationSurvey(Base):
     )
     recorder: Mapped["User"] = relationship(
         back_populates="recorder_of_presentation_surveys",
-        ForeignKey=[recorder_id]
+        foreign_keys=[recorder_id]
     )
 
     def __repr__(self) -> str:
@@ -1047,8 +1047,7 @@ class Login(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     user_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    last_login_date: Mapped[datetime]
-    record_date: Mapped[datetime]
+    login_date: Mapped[datetime]
 
     user: Mapped["User"] = relationship(
         back_populates="user_of_logins"
@@ -1059,6 +1058,5 @@ class Login(Base):
             f"Login("
             f"id={self.id!r}, "
             f"user_id={self.user_id!r}, "
-            f"last_login_date={self.last_login_date!r}, "
-            f"record_date={self.record_date!r})"
+            f"record_date={self.login_date!r})"
         )

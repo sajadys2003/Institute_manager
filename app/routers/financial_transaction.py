@@ -41,7 +41,7 @@ async def create_financial_transaction(
                 db.commit()
                 db.refresh(db_financial_transaction)
                 return db_financial_transaction
-            return HTTPException(
+            raise HTTPException(
                 status_code=400,
                 detail="one of presentation_id , selected_presentation_id and selected_exam_id must enter")
         except IntegrityError as e:
@@ -118,7 +118,7 @@ async def update_financial_transaction(
                     setattr(db_financial_transaction, key, value)
                 db.commit()
                 return financial_transaction
-            return HTTPException(
+            raise HTTPException(
                 status_code=400,
                 detail="one of presentation_id , selected_presentation_id and selected_exam_id must enter")
         except IntegrityError as e:

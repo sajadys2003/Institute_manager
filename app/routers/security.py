@@ -7,7 +7,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from jwt.exceptions import InvalidTokenError
 from app.dependencies import SessionDep
-from app.models import User
+from app.models import User, Login
 from sqlalchemy import select
 from app.schemas import UserAuth
 
@@ -99,6 +99,10 @@ async def login_for_access_token(
     access_token = create_access_token(
         data={"sub": user.phone_number}, expires_delta=access_token_expires
     )
+    user_login_dict = {"user_id": user.id, "login_date": datetime.now()}
+    user_login = Login(**user_login_dict)
+    SessionDep.add(user_login)
+    SessionDep.commit()
     return Token(access_token=access_token, token_type="bearer")
 
 
