@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from datetime import date
-
+from decimal import Decimal
 
 # define pydantic models to validate 'Request' and 'Response' body.
 
@@ -313,11 +313,11 @@ class PresentationSurveyIn(BaseModel):
 
 class PresentationSurveyResponse(BaseModel):
     id: int
-    student_id: UserOut
-    presentation_id: Presentation
-    survey_category_id: SurveyCategoryResponse
+    student: UserOut
+    presentation: Presentation
+    survey_category: SurveyCategoryResponse
     score: int
-    recorder_id: int
+    recorder: int
     record_date: datetime
 
 
@@ -335,7 +335,7 @@ class FinancialCategoryIn(BaseModel):
 class FinancialCategoryResponse(BaseModel):
     id: int
     name: str
-    recorder_id: UserOut
+    recorder: UserOut
     record_date: datetime
 
 
@@ -350,9 +350,48 @@ class PayCategoryIn(BaseModel):
 class PayCategoryResponse(BaseModel):
     id: int
     name: str
-    recorder_id = UserOut
+    recorder = UserOut
     record_date: datetime
 
 
 class PayCategoryUpdate(BaseModel):
     name: str | None = None
+
+
+class FinancialTransactionIn(BaseModel):
+    user_id: int
+    financial_category_id: int
+    amount: Decimal
+    presentation_id: int | None = None
+    selected_presentation_id: int | None = None
+    selected_exam_id: int | None = None
+    transaction_date: datetime
+    pay_reference: str
+    pay_category_id: int
+
+
+class FinancialTransactionResponse(BaseModel):
+    id: int
+    user = UserOut
+    financial_category: FinancialCategoryResponse
+    amount: Decimal
+    presentation: Presentation
+    selected_presentation: SelevtedPresentation
+    selected_exam: SelectedExam
+    transaction_date: datetime
+    pay_reference: str
+    pay_category: PayCategoryResponse
+    recorder: UserOut
+    record_date: datetime
+
+
+class FinancialTransactionUpdate(BaseModel):
+    user_id: int | None = None
+    financial_category_id: int | None = None
+    amount: Decimal | None = None
+    presentation_id: int | None = None
+    selected_presentation_id: int | None = None
+    selected_exam_id: int | None = None
+    transaction_date: datetime | None = None
+    pay_reference: str | None = None
+    pay_category_id: int | None = None

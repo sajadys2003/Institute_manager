@@ -40,7 +40,7 @@ async def create_pay_category(
 
 
 @router.get("/pay_category", tags=["pay_category"], response_model=list[PayCategoryResponse])
-async def get_pay_category(
+async def get_pay_categories(
         user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), search: str | None = None
 ):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
