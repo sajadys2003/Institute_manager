@@ -13,18 +13,18 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 router = APIRouter()
 
 
-# Endpoints of survey category
-# add all Endpoints for survey category
+# Endpoints of presentation survey
+# add all Endpoints for presentation survey
 # -------------------------------------------------------------------------------------------------------
 
 
 @router.post("/presentation_survey/create", tags=["presentation_survey"], response_model=PresentationSurveyResponse)
 async def create_presentation_survey(
-        user_auth: CurrentUser, survey_category: PresentationSurveyIn, db: Session = Depends(get_session)
+        user_auth: CurrentUser, presentation_survey: PresentationSurveyIn, db: Session = Depends(get_session)
 ):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         try:
-            presentation_survey_dict = survey_category.dict()
+            presentation_survey_dict = presentation_survey.dict()
             presentation_survey_dict["record_date"] = datetime.now()
             presentation_survey_dict["recorder_id"] = user_auth.id
             db_presentation_survey = PresentationSurvey(**presentation_survey_dict)
@@ -52,7 +52,7 @@ async def get_presentation_survey(
                 return presentation_survey
             raise HTTPException(status_code=404, detail="presentation survey not found!")
         presentation_survey = db.scalars(
-            select(PresentationSurveyResponse).limit(pagination.limit).offset(pagination.offset))
+            select(PresentationSurvey).limit(pagination.limit).offset(pagination.offset))
         if presentation_survey:
             return presentation_survey
         raise HTTPException(status_code=404, detail="presentation survey not found")
@@ -75,7 +75,7 @@ async def get_presentation_survey(
 
 @router.put("/presentation_survey/update/{presentation_survey_id}", tags=["presentation_survey"],
             response_model=PresentationSurveyResponse)
-async def update_presentation_survey(
+async def update_presentation_surveys(
         user_auth: CurrentUser,
         presentation_survey: PresentationSurveyUpdate,
         presentation_survey_id: int,

@@ -916,10 +916,12 @@ class FinancialCategory(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     name: Mapped[str]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
+    financial_transactions: Mapped[list["FinancialTransaction"]] = relationship(
+        back_populates="financial_category"
+    )
     recorder: Mapped["User"] = relationship(
         back_populates="recorder_of_financial_categories"
     )
@@ -929,7 +931,6 @@ class FinancialCategory(Base):
             f"FinancialCategory("
             f"id={self.id!r}, "
             f"name={self.name!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -982,6 +983,9 @@ class FinancialTransaction(Base):
     user: Mapped["User"] = relationship(
         back_populates="user_of_financial_transactions",
         foreign_keys=[user_id]
+    )
+    financial_category: Mapped["FinancialCategory"] = relationship(
+        back_populates="financial_transactions"
     )
     presentation: Mapped["Presentation"] = relationship(
         back_populates="financial_transactions"

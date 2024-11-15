@@ -326,3 +326,18 @@ class PresentationSurveyUpdate(BaseModel):
     presentation_id: int | None = None
     survey_category_id: int | None = None
     score: int | None = None
+
+
+class FinancialCategoryIn(BaseModel):
+    name: str
+
+
+class FinancialCategoryResponse(BaseModel):
+    id: int
+    name: str
+    recorder_id: UserOut
+    record_date: datetime
+
+
+class FinancialCategoryUpdate(BaseModel):
+    name: str | None = None
