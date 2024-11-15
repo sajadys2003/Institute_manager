@@ -915,7 +915,7 @@ class FinancialCategory(Base):
     __tablename__ = "financial_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -940,8 +940,7 @@ class PayCategory(Base):
     __tablename__ = "pay_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
-    name: Mapped[str]
-    is_enabled: Mapped[bool] = mapped_column(default=True)
+    name: Mapped[str] = mapped_column(unique=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 
@@ -958,7 +957,6 @@ class PayCategory(Base):
             f"PayCategory("
             f"id={self.id!r}, "
             f"name={self.name!r}, "
-            f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
             f"record_date={self.record_date!r})"
         )
@@ -969,14 +967,14 @@ class FinancialTransaction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     user_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    financial_category_id = mapped_column(ForeignKey("financial_categories.id"), nullable=False)
+    financial_category_id = mapped_column(ForeignKey("financial_categories.id", ondelete="RESTRICT"), nullable=False)
     amount: Mapped[Decimal]
     presentation_id = mapped_column(ForeignKey("presentations.id"))
     selected_presentation_id = mapped_column(ForeignKey("selected_presentations.id"))
     selected_exam_id = mapped_column(ForeignKey("selected_exams.id"))
     transaction_date: Mapped[datetime] = mapped_column(default=datetime.now())
     pay_reference: Mapped[str]
-    pay_category_id = mapped_column(ForeignKey("pay_categories.id"), nullable=False)
+    pay_category_id = mapped_column(ForeignKey("pay_categories.id", ondelete="RESTRICT"), nullable=False)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
 

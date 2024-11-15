@@ -80,7 +80,7 @@ async def update_roll_call(
             roll_call_dict["record_date"] = datetime.now()
             roll_call_dict["recorder_id"] = user_auth.id
             for key, value in roll_call_dict.items():
-                setattr(roll_call, key, value)
+                setattr(db_roll_call, key, value)
             db.commit()
             return db_roll_call
         except IntegrityError as e:

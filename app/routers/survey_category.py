@@ -87,7 +87,7 @@ async def update_survey_category(
             survey_category_dict["record_date"] = datetime.now()
             survey_category_dict["recorder_id"] = user_auth.id
             for key, value in survey_category_dict.items():
-                setattr(survey_category, key, value)
+                setattr(db_survey_category, key, value)
             db.commit()
             return db_survey_category
         except IntegrityError as e:

@@ -91,7 +91,7 @@ async def update_financial_category(
             financial_category_dict["record_date"] = datetime.now()
             financial_category_dict["recorder_id"] = user_auth.id
             for key, value in financial_category_dict.items():
-                setattr(financial_category, key, value)
+                setattr(db_financial_category, key, value)
             db.commit()
             return financial_category
         except IntegrityError as e:

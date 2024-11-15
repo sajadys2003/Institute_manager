@@ -91,7 +91,7 @@ async def update_presentation_surveys(
             presentation_survey_dict["record_date"] = datetime.now()
             presentation_survey_dict["recorder_id"] = user_auth.id
             for key, value in presentation_survey_dict.items():
-                setattr(presentation_survey, key, value)
+                setattr(db_presentation_survey, key, value)
             db.commit()
             return db_presentation_survey
         except IntegrityError as e:

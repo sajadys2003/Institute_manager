@@ -341,3 +341,18 @@ class FinancialCategoryResponse(BaseModel):
 
 class FinancialCategoryUpdate(BaseModel):
     name: str | None = None
+
+
+class PayCategoryIn(BaseModel):
+    name: str
+
+
+class PayCategoryResponse(BaseModel):
+    id: int
+    name: str
+    recorder_id = UserOut
+    record_date: datetime
+
+
+class PayCategoryUpdate(BaseModel):
+    name: str | None = None
