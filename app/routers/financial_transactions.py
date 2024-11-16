@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, PageDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
 router = APIRouter(prefix="/financial_transactions")
 
@@ -24,11 +25,26 @@ async def get_all_financial_transactions(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,
-        user_id: int | None = None
+        user_id: int | None = None,
+        presentation_id: int | None = None,
+        selected_presentation_id: int | None = None,
+        selected_exam_id: int | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
-        criteria = FinancialTransaction.user_id == user_id if (user_id or user_id == 0) else True
+        criteria = and_(
+            FinancialTransaction.user_id == user_id
+            if (user_id or user_id == 0) else True,
+
+            FinancialTransaction.presentation_id == presentation_id
+            if (presentation_id or presentation_id == 0) else True,
+
+            FinancialTransaction.selected_presentation_id == selected_presentation_id
+            if (selected_presentation_id or selected_presentation_id == 0) else True,
+
+            FinancialTransaction.selected_exam_id == selected_exam_id
+            if (selected_exam_id or selected_exam_id == 0) else True
+        )
         stored_records = db.query(FinancialTransaction).where(criteria)
 
         return stored_records.offset(page.offset).limit(page.limit).all()
@@ -59,7 +75,13 @@ async def create_financial_transaction(
             data.transaction_date = datetime.now()
 
         data_dict = data.model_dump()
-        data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
+        data_dict.update(
+            {
+                "amount": str(data.amount),
+                "recorder_id": current_user.id,
+                "record_date": datetime.now()
+            }
+        )
         try:
             new_record = FinancialTransaction(**data_dict)
             db.add(new_record)
@@ -80,6 +102,11 @@ async def update_financial_transaction(
     if authorized(current_user, operation):
 
         stored_record = await get_by_id(db, financial_transaction_id)
+
+        amount = data.amount
+        if amount or amount == 0:
+            data.amount = str(amount)
+
         data_dict = data.model_dump(exclude_unset=True)
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
         try:

@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
 from datetime import date
-from decimal import Decimal
 
 
 # define pydantic models to validate 'Request' and 'Response' body.
@@ -172,27 +171,27 @@ class CourseOut(BaseModel):
 # course_prices
 class CoursePriceIn(BaseModel):
     course_id: int
-    public_price: Decimal
-    private_price: Decimal
+    public_price: float
+    private_price: float
     date: datetime | None = None
-    duration: Decimal | None = Decimal("90")
+    duration: int | None = 90
 
 
 class CoursePriceUpdate(BaseModel):
     course_id: int | None = None
-    public_price: Decimal | None = None
-    private_price: Decimal | None = None
+    public_price: float | None = None
+    private_price: float | None = None
     date: datetime | None = None
-    duration: Decimal | None = None
+    duration: int | None = None
 
 
 class CoursePriceOut(BaseModel):
     id: int
     course_id: int
-    public_price: Decimal
-    private_price: Decimal
+    public_price: float
+    private_price: float
     date: datetime
-    duration: Decimal
+    duration: int
     recorder_id: int | None
     record_date: datetime
 
@@ -209,7 +208,7 @@ class CoursePrerequisiteUpdate(BaseModel):
 
 
 class CoursePrerequisiteOut(BaseModel):
-    course_id: int
+    main_course_id: int
     prerequisite_id: int
     recorder_id: int | None
     record_date: datetime
@@ -238,7 +237,7 @@ class BuildingOut(BaseModel):
 class ClassroomIn(BaseModel):
     name: str
     building_id: int
-    floor: str
+    floor: int
     capacity: int | None = None
     lesson_group_id: int | None = None
 
@@ -246,7 +245,7 @@ class ClassroomIn(BaseModel):
 class ClassroomUpdate(BaseModel):
     name: str | None = None
     building_id: int | None = None
-    floor: str | None = None
+    floor: int | None = None
     capacity: int | None = None
     lesson_group_id: int | None = None
 
@@ -255,7 +254,7 @@ class ClassroomOut(BaseModel):
     id: int
     name: str
     building_id: int
-    floor: str
+    floor: int
     capacity: int
     lesson_group_id: int | None
     recorder_id: int | None
@@ -297,20 +296,20 @@ class PresentationOut(BaseModel):
 class SelectedPresentationIn(BaseModel):
     presentation_id: int
     student_id: int | None = None
-    grade: Decimal | None = None
+    grade: float | None = None
 
 
 class SelectedPresentationUpdate(BaseModel):
     presentation_id: int | None = None
     student_id: int | None = None
-    grade: Decimal | None = None
+    grade: float | None = None
 
 
 class SelectedPresentationOut(BaseModel):
     id: int
     presentation_id: int
     student_id: int
-    grade: Decimal | None
+    grade: float | None
     recorder_id: int
     record_date: datetime
 
@@ -395,14 +394,14 @@ class PresentationSurveyIn(BaseModel):
     student_id: int
     presentation_id: int
     survey_category_id: int
-    score: Decimal
+    score: float
 
 
 class PresentationSurveyUpdate(BaseModel):
     student_id: int | None = None
     presentation_id: int | None = None
     survey_category_id: int | None = None
-    score: Decimal | None = None
+    score: float | None = None
 
 
 class PresentationSurveyOut(BaseModel):
@@ -410,7 +409,7 @@ class PresentationSurveyOut(BaseModel):
     student_id: int
     presentation_id: int
     survey_category_id: int
-    score: Decimal
+    score: float
     recorder_id: int
     record_date: datetime
 
@@ -418,18 +417,18 @@ class PresentationSurveyOut(BaseModel):
 # exams
 class ExamIn(BaseModel):
     course_id: int
-    price: Decimal
+    price: float
 
 
 class ExamUpdate(BaseModel):
     course_id: int | None = None
-    price: Decimal | None = None
+    price: float | None = None
 
 
 class ExamOut(BaseModel):
     id: int
     course_id: int
-    price: Decimal
+    price: float
     recorder_id: int
     record_date: datetime
 
@@ -458,14 +457,14 @@ class SelectedExamIn(BaseModel):
     student_id: int
     exam_schedule_id: int
     is_participated: bool | None = True
-    grade: Decimal | None = None
+    grade: float | None = None
 
 
 class SelectedExamUpdate(BaseModel):
     student_id: int | None
     exam_schedule_id: int | None
     is_participated: bool | None = None
-    grade: Decimal | None = None
+    grade: float | None = None
 
 
 class SelectedExamOut(BaseModel):
@@ -473,7 +472,7 @@ class SelectedExamOut(BaseModel):
     student_id: int
     exam_schedule_id: int
     is_participated: bool
-    grade: Decimal | None
+    grade: float | None
     recorder_id: int
     record_date: datetime
 
@@ -514,7 +513,7 @@ class PayCategoryOut(BaseModel):
 class FinancialTransactionIn(BaseModel):
     user_id: int
     financial_category_id: int
-    amount: Decimal
+    amount: float
     presentation_id: int | None = None
     selected_presentation_id: int | None = None
     selected_exam_id: int | None = None
@@ -526,7 +525,7 @@ class FinancialTransactionIn(BaseModel):
 class FinancialTransactionUpdate(BaseModel):
     user_id: int | None = None
     financial_category_id: int | None = None
-    amount: Decimal | None = None
+    amount: float | None = None
     presentation_id: int | None = None
     selected_presentation_id: int | None = None
     selected_exam_id: int | None = None
@@ -539,7 +538,7 @@ class FinancialTransactionOut(BaseModel):
     id: int
     user_id: int
     financial_category_id: int
-    amount: Decimal
+    amount: float
     presentation_id: int | None
     selected_presentation_id: int | None
     selected_exam_id: int | None

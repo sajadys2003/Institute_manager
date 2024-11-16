@@ -63,9 +63,6 @@ async def create_presentation(
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
 
-        if not data.date:
-            data.date = datetime.now()
-
         data_dict = data.model_dump()
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
         try:

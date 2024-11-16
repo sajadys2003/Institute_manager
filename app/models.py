@@ -419,7 +419,7 @@ class CoursePrice(Base):
     public_price: Mapped[Decimal]
     private_price: Mapped[Decimal]
     date: Mapped[datetime]
-    duration: Mapped[Decimal]
+    duration: Mapped[int]
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
 
@@ -480,7 +480,7 @@ class Building(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     name: Mapped[str] = mapped_column(unique=True)
-    location: Mapped[str]
+    location: Mapped[str] = mapped_column(nullable=True)
     recorder_id = mapped_column(ForeignKey("users.id"))
     record_date: Mapped[datetime]
 

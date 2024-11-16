@@ -108,7 +108,7 @@ async def create_user(
 @router.put(path="/{phone_number}", response_model=UserResponse)
 async def update_user(
         db: SessionDep,
-        phone_number: int,
+        phone_number: str,
         data: UserUpdate,
         current_user: CurrentUer
 ):

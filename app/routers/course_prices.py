@@ -28,7 +28,6 @@ async def get_all_course_prices(
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
-
         criteria = CoursePrice.course_id == course_id if (course_id or course_id == 0) else True
         stored_records = db.query(CoursePrice).where(criteria)
 
@@ -60,7 +59,14 @@ async def create_course_price(
             data.date = datetime.now()
 
         data_dict = data.model_dump()
-        data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
+        data_dict.update(
+            {
+                "public_price": str(data.public_price),
+                "private_price": str(data.private_price),
+                "recorder_id": current_user.id,
+                "record_date": datetime.now(),
+            }
+        )
         try:
             new_record = CoursePrice(**data_dict)
             db.add(new_record)
@@ -81,6 +87,15 @@ async def update_course_price(
     if authorized(current_user, operation):
 
         stored_record = await get_by_id(db, course_price_id)
+
+        public_price = data.public_price
+        if public_price or public_price == 0:
+            data.public_price = str(public_price)
+
+        private_price = data.private_price
+        if private_price or private_price == 0:
+            data.private_price = str(private_price)
+
         data_dict = data.model_dump(exclude_unset=True)
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
         try:

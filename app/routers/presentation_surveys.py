@@ -68,7 +68,12 @@ async def create_presentation_survey(
     if authorized(current_user, operation):
 
         data_dict = data.model_dump()
-        data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
+        data_dict.update(
+            {   "score": str(data.score),
+                "recorder_id": current_user.id,
+                "record_date": datetime.now()
+            }
+        )
         try:
             new_record = PresentationSurvey(**data_dict)
             db.add(new_record)
@@ -89,6 +94,11 @@ async def update_presentation_survey(
     if authorized(current_user, operation):
 
         stored_record = await get_by_id(db, presentation_session_id)
+
+        score = data.score
+        if score or score == 0:
+            data.score = str(score)
+
         data_dict = data.model_dump(exclude_unset=True)
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
         try:

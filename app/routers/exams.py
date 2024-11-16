@@ -28,7 +28,6 @@ async def get_all_exams(
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
-
         criteria = Exam.course_id == course_id if (course_id or course_id == 0) else True
         stored_records = db.query(Exam).where(criteria)
 
@@ -57,7 +56,13 @@ async def create_exam(
     if authorized(current_user, operation):
 
         data_dict = data.model_dump()
-        data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
+        data_dict.update(
+            {
+                "price": str(data.price),
+                "recorder_id": current_user.id,
+                "record_date": datetime.now()
+            }
+        )
         try:
             new_record = Exam(**data_dict)
             db.add(new_record)
@@ -78,6 +83,11 @@ async def update_exam(
     if authorized(current_user, operation):
 
         stored_record = await get_by_id(db, exam_id)
+
+        price = data.price
+        if price or price == 0:
+            data.price = str(price)
+
         data_dict = data.model_dump(exclude_unset=True)
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
         try:

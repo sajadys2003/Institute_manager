@@ -67,7 +67,13 @@ async def create_selected_exam(
             data.student_id = current_user.id
 
         data_dict = data.model_dump()
-        data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
+        data_dict.update(
+            {
+                "grade": str(data.grade),
+                "recorder_id": current_user.id,
+                "record_date": datetime.now()
+            }
+        )
         try:
             new_record = SelectedExam(**data_dict)
             db.add(new_record)
@@ -88,6 +94,11 @@ async def update_selected_exam(
     if authorized(current_user, operation):
 
         stored_record = await get_by_id(db, selected_presentation_id)
+
+        grade = data.grade
+        if grade or grade == 0:
+            data.grade = str(grade)
+
         data_dict = data.model_dump(exclude_unset=True)
         data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
         try:
