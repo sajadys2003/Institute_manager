@@ -21,7 +21,7 @@ async def get_by_id(db: SessionDep, selected_presentation_id: int) -> SelectedPr
 
 
 @router.get("/", response_model=list[SelectedPresentationResponse])
-async def get_all_selected_presentations(
+async def get_selected_presentations(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,

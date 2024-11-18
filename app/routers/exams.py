@@ -20,7 +20,7 @@ async def get_by_id(db: SessionDep, exam_id: int) -> Exam:
 
 
 @router.get("/", response_model=list[ExamResponse])
-async def get_all_exams(
+async def get_exams(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,

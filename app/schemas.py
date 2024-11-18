@@ -1,6 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime
-from datetime import date
+from datetime import datetime, date
 
 
 # define pydantic models to validate 'Request' and 'Response' body.
@@ -19,7 +18,7 @@ class RoleOut(BaseModel):
     id: int
     name: str
     record_date: datetime
-    recorder_id: int | None
+    recorder_id: int
 
 
 # permissions
@@ -41,7 +40,7 @@ class PermissionGroupUpdate(BaseModel):
 class PermissionGroupOut(BaseModel):
     id: int
     name: str
-    recorder_id: int | None
+    recorder_id: int
     record_date: datetime
 
 
@@ -59,6 +58,8 @@ class PermissionGroupDefineUpdate(BaseModel):
 class PermissionGroupDefineOut(BaseModel):
     permission_group_id: int
     permission_id: int
+    recorder_id: int
+    record_date: datetime
 
 
 # users
@@ -127,7 +128,7 @@ class LessonGroupUpdate(BaseModel):
 class LessonGroupOut(BaseModel):
     id: int
     name: str
-    recorder_id: int | None
+    recorder_id: int
     record_date: datetime
 
 
@@ -164,7 +165,7 @@ class CourseOut(BaseModel):
     id: int
     name: str
     lesson_id: int | None
-    recorder_id: int | None
+    recorder_id: int
     record_date: datetime
 
 
@@ -192,7 +193,7 @@ class CoursePriceOut(BaseModel):
     private_price: float
     date: datetime
     duration: int
-    recorder_id: int | None
+    recorder_id: int
     record_date: datetime
 
 
@@ -210,7 +211,7 @@ class CoursePrerequisiteUpdate(BaseModel):
 class CoursePrerequisiteOut(BaseModel):
     main_course_id: int
     prerequisite_id: int
-    recorder_id: int | None
+    recorder_id: int
     record_date: datetime
 
 
@@ -229,7 +230,7 @@ class BuildingOut(BaseModel):
     id: int
     name: str
     location: str
-    recorder_id: int | None
+    recorder_id: int
     record_date: datetime
 
 
@@ -257,7 +258,7 @@ class ClassroomOut(BaseModel):
     floor: int
     capacity: int
     lesson_group_id: int | None
-    recorder_id: int | None
+    recorder_id: int
     record_date: datetime
 
 
@@ -341,7 +342,7 @@ class PresentationSessionOut(BaseModel):
     end_time: datetime
     is_canceled: bool
     is_extra: bool
-    recorder_id: int | None
+    recorder_id: int
     record_date: datetime
 
 
@@ -551,37 +552,37 @@ class FinancialTransactionOut(BaseModel):
 
 # holidays
 class HolidayIn(BaseModel):
-    holiday_date: datetime
+    holiday_date: date
 
 
 class HolidayUpdate(BaseModel):
-    holiday_date: datetime| None = None
+    holiday_date: date | None = None
 
 
 class HolidayOut(BaseModel):
     id: int
-    holiday_date: datetime
+    holiday_date: date
     recorder_id: int
     record_date: datetime
 
 
 # response models
 class RoleResponse(RoleOut):
-    recorder: UserOut | None
+    recorder: UserOut
 
 
 class PermissionResponse(PermissionOut):
-    parent: PermissionOut | None
+    parent: PermissionOut
 
 
 class PermissionGroupResponse(PermissionGroupOut):
-    recorder: UserOut | None
+    recorder: UserOut
 
 
 class PermissionGroupDefineResponse(PermissionGroupDefineOut):
     permission_group: PermissionGroupOut
     permission: PermissionOut
-    recorder: UserOut | None
+    recorder: UserOut
 
 
 class UserResponse(UserOut):
@@ -591,38 +592,38 @@ class UserResponse(UserOut):
 
 
 class LessonGroupResponse(LessonGroupOut):
-    recorder: UserOut | None
+    recorder: UserOut
 
 
 class LessonResponse(LessonOut):
     lesson_group: LessonGroupOut | None
-    recorder: UserOut | None
+    recorder: UserOut
 
 
 class CourseResponse(CourseOut):
     lesson: LessonOut | None
-    recorder: UserOut | None
+    recorder: UserOut
 
 
 class CoursePriceResponse(CoursePriceOut):
     course: CourseOut
-    recorder: UserOut | None
+    recorder: UserOut
 
 
 class CoursePrerequisiteResponse(CoursePrerequisiteOut):
     main_course: CourseOut
     prerequisite: CourseOut
-    recorder: UserOut | None
+    recorder: UserOut
 
 
 class BuildingResponse(BuildingOut):
-    recorder: UserOut | None
+    recorder: UserOut
 
 
 class ClassroomResponse(ClassroomOut):
     building: BuildingOut
     lesson_group: LessonGroupOut | None
-    recorder: UserOut | None
+    recorder: UserOut
 
 
 class PresentationResponse(PresentationOut):

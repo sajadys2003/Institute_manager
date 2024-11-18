@@ -21,7 +21,7 @@ async def get_by_id(db: SessionDep, role_id: int) -> Role:
 
 
 @router.get("/", response_model=list[RoleResponse])
-async def get_all_roles(
+async def get_roles(
         db: SessionDep,
         commons: CommonsDep,
         current_user: CurrentUer

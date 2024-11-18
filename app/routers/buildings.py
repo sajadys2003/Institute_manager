@@ -21,7 +21,7 @@ async def get_by_id(db: SessionDep, building_id: int) -> Building:
 
 
 @router.get("/", response_model=list[BuildingResponse])
-async def get_all_buildings(
+async def get_buildings(
         db: SessionDep,
         commons: CommonsDep,
         current_user: CurrentUer

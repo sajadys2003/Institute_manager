@@ -6,9 +6,10 @@ from inspect import currentframe
 from fastapi import APIRouter
 from fastapi import HTTPException, status
 from app.dependencies import SessionDep, PageDep
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import and_
+
 
 router = APIRouter(prefix="/presentations")
 
@@ -21,12 +22,14 @@ async def get_by_id(db: SessionDep, presentation_id: int) -> Presentation:
 
 
 @router.get("/", response_model=list[PresentationResponse])
-async def get_all_presentations(
+async def get_presentations(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,
         course_id: int | None = None,
-        teacher_id: int | None = None
+        teacher_id: int | None = None,
+        start: date | None = None,
+        end: date | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
@@ -35,7 +38,10 @@ async def get_all_presentations(
             if (course_id or course_id == 0) else True,
 
             Presentation.teacher_id == teacher_id
-            if (teacher_id or teacher_id == 0) else True
+            if (teacher_id or teacher_id == 0) else True,
+
+            Presentation.start_date > start if start else True,
+            Presentation.start_date < end if end else True
         )
         stored_records = db.query(Presentation).where(criteria)
 

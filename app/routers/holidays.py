@@ -8,6 +8,8 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, PageDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
+from datetime import date
 
 router = APIRouter(prefix="/holidays")
 
@@ -20,15 +22,21 @@ async def get_by_id(db: SessionDep, holiday_id: int) -> Holiday:
 
 
 @router.get("/", response_model=list[HolidayResponse])
-async def get_all_holidays(
+async def get_holidays(
         db: SessionDep,
         page: PageDep,
-        current_user: CurrentUer
+        current_user: CurrentUer,
+        start: date | None = None,
+        end: date | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
+        criteria = and_(
+            Holiday.holiday_date > start if start else True,
+            Holiday.holiday_date < end if end else True
+        )
+        stored_records = db.query(Holiday).where(criteria)
 
-        stored_records = db.query(Holiday)
         return stored_records.offset(page.offset).limit(page.limit).all()
 
 

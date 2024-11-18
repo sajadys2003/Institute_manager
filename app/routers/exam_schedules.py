@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from app.dependencies import SessionDep, PageDep
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
 
 router = APIRouter(prefix="/exam_schedules")
 
@@ -20,15 +21,23 @@ async def get_by_id(db: SessionDep, exam_schedule_id: int) -> ExamSchedule:
 
 
 @router.get("/", response_model=list[ExamScheduleResponse])
-async def get_all_exam_schedules(
+async def get_exam_schedules(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,
-        exam_id: int | None = None
+        exam_id: int | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
-        criteria = ExamSchedule.exam_id == exam_id if (exam_id or exam_id == 0) else True
+        criteria = and_(
+            ExamSchedule.exam_id == exam_id
+            if (exam_id or exam_id == 0) else True,
+
+            ExamSchedule.start_date > start if start else True,
+            ExamSchedule.start_date < end if end else True
+        )
         stored_records = db.query(ExamSchedule).where(criteria)
 
         return stored_records.offset(page.offset).limit(page.limit).all()

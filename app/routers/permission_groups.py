@@ -21,7 +21,7 @@ async def get_by_id(db: SessionDep, permission_group_id: int) -> PermissionGroup
 
 
 @router.get("/", response_model=list[PermissionGroupResponse])
-async def get_all_permission_groups(
+async def get_permission_groups(
         db: SessionDep,
         commons: CommonsDep,
         current_user: CurrentUer

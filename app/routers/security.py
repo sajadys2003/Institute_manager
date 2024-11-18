@@ -7,7 +7,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel, ValidationError
 from jwt.exceptions import InvalidTokenError
 from app.dependencies import SessionDep
-from app.models import User, Login
+from app.models import User, LoginLog
 from sqlalchemy import and_
 
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
@@ -51,8 +51,8 @@ def create_token(sub: str):
     return Token(access_token=encoded_jwt, token_type="bearer")
 
 
-def add_login_record(db: SessionDep, user_id: int):
-    new_record = Login(user_id=user_id, last_login_date=datetime.now())
+def create_login_log(db: SessionDep, user_id: int):
+    new_record = LoginLog(user_id=user_id, login_date=datetime.now())
     db.add(new_record)
     db.commit()
 
@@ -68,7 +68,7 @@ async def login_for_access_token(
         token = create_token(
             sub=authenticated_user.phone_number
         )
-        add_login_record(db, authenticated_user.id)
+        create_login_log(db, authenticated_user.id)
         return token
 
 

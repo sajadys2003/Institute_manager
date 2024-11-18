@@ -21,7 +21,7 @@ async def get_by_id(db: SessionDep, roll_call_id: int) -> RollCall:
 
 
 @router.get("/", response_model=list[RollCallResponse])
-async def get_all_roll_calls(
+async def get_roll_calls(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from fastapi import APIRouter
 
 # APIRouter, used to group path operations and structure our app in multiple files.
+
 from app.routers import (
     security,
     users,
@@ -9,26 +9,26 @@ from app.routers import (
     permissions,
     permission_groups,
     permission_group_defines,
-    lesson_groups,
-    lessons,
-    courses,
-    course_prices,
-    course_prerequisites,
+    # lesson_groups,
+    # lessons,
+    # courses,
+    # course_prices,
+    # course_prerequisites,
     buildings,
     classrooms,
-    presentations,  # periodic
+    presentations,
     selected_presentations,
-    presentation_sessions,  # periodic
+    presentation_sessions,
     roll_calls,
-    survey_categories,
-    presentation_surveys,
+    # survey_categories,
+    # presentation_surveys,
     exams,
-    exam_schedules,  # periodic
-    selected_exams,  # search by grade??
-    financial_categories,
-    pay_categories,
-    financial_transactions,  # periodic - all fks?
-    holidays  # periodic
+    exam_schedules,
+    selected_exams,
+    # financial_categories,
+    # pay_categories,
+    # financial_transactions,
+    holidays
 )
 
 routers = [
@@ -38,25 +38,25 @@ routers = [
     permissions.router,
     permission_groups.router,
     permission_group_defines.router,
-    lesson_groups.router,
-    lessons.router,
-    courses.router,
-    course_prices.router,
-    course_prerequisites.router,
+    # lesson_groups.router,
+    # lessons.router,
+    # courses.router,
+    # course_prices.router,
+    # course_prerequisites.router,
     buildings.router,
     classrooms.router,
     presentations.router,
     selected_presentations.router,
     presentation_sessions.router,
     roll_calls.router,
-    survey_categories.router,
-    presentation_surveys.router,
+    # survey_categories.router,
+    # presentation_surveys.router,
     exams.router,
     exam_schedules.router,
     selected_exams.router,
-    financial_categories.router,
-    pay_categories.router,
-    financial_transactions.router,
+    # financial_categories.router,
+    # pay_categories.router,
+    # financial_transactions.router,
     holidays.router
 ]
 

@@ -27,7 +27,7 @@ async def get_by_id(db: SessionDep, user_id: int) -> User:
 
 
 @router.get("/", response_model=list[UserResponse])
-async def get_all_users(
+async def get_users(
         db: SessionDep,
         commons: CommonsDep,
         current_user: CurrentUer

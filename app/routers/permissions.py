@@ -20,7 +20,7 @@ async def get_by_id(db: SessionDep, permission_id: int) -> Permission:
 
 
 @router.get("/", response_model=list[PermissionResponse])
-async def get_all_permissions(
+async def get_permissions(
         db: SessionDep,
         commons: CommonsDep,
         current_user: CurrentUer

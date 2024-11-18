@@ -2,6 +2,7 @@ from app.models import engine
 from sqlalchemy.orm import Session
 from typing import Annotated
 from fastapi import Depends
+from datetime import datetime, date
 
 
 def get_session():
@@ -29,3 +30,16 @@ class CommonQueryParams(Pagination):
 
 
 CommonsDep = Annotated[CommonQueryParams, Depends(CommonQueryParams)]
+
+
+class DatePeriod:
+    def __init__(self, start: date | None = None, end: date | None = None):
+        self.start = start
+        self.end = end
+
+
+
+class DateTimePeriod:
+    def __init__(self, start: datetime | None = None, end: datetime | None = None):
+        self.start = start
+        self.end = end

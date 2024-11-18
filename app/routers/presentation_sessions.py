@@ -21,12 +21,14 @@ async def get_by_id(db: SessionDep, presentation_session_id: int) -> Presentatio
 
 
 @router.get("/", response_model=list[PresentationSessionResponse])
-async def get_all_presentation_sessions(
+async def get_presentation_sessions(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,
         presentation_id: int | None = None,
-        classroom_id: int | None = None
+        classroom_id: int | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(current_user, operation):
@@ -35,7 +37,10 @@ async def get_all_presentation_sessions(
             if (presentation_id or presentation_id == 0) else True,
 
             PresentationSession.classroom_id == classroom_id
-            if (classroom_id or classroom_id == 0) else True
+            if (classroom_id or classroom_id == 0) else True,
+
+            PresentationSession.start_time > start if start else True,
+            PresentationSession.start_time < end if end else True
         )
         stored_records = db.query(PresentationSession).where(criteria)
 

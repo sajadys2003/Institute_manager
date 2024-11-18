@@ -21,7 +21,7 @@ async def get_by_id(db: SessionDep, selected_exam_id: int) -> SelectedExam:
 
 
 @router.get("/", response_model=list[SelectedExamResponse])
-async def get_all_selected_exams(
+async def get_selected_exams(
         db: SessionDep,
         page: PageDep,
         current_user: CurrentUer,

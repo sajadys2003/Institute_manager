@@ -263,7 +263,7 @@ class User(Base):
     recorder_of_holidays: Mapped[list["Holiday"]] = relationship(
         back_populates="recorder"
     )
-    user_of_logins: Mapped[list["Login"]] = relationship(
+    user_of_logins: Mapped[list["LoginLog"]] = relationship(
         back_populates="user"
     )
 
@@ -293,7 +293,7 @@ class User(Base):
             f"permission_group_id={self.permission_group_id!r}, "
             f"is_enabled={self.is_enabled!r}, "
             f"recorder_id={self.recorder_id!r}, "
-            f"record_date={self.permission_group_id!r})"
+            f"record_date={self.record_date!r})"
         )
 
 
@@ -1021,12 +1021,12 @@ class Holiday(Base):
         )
 
 
-class Login(Base):
-    __tablename__ = "logins"
+class LoginLog(Base):
+    __tablename__ = "login_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     user_id = mapped_column(ForeignKey("users.id"), nullable=False)
-    last_login_date: Mapped[datetime]
+    login_date: Mapped[datetime]
 
     user: Mapped["User"] = relationship(
         back_populates="user_of_logins"
@@ -1037,7 +1037,7 @@ class Login(Base):
             f"Login("
             f"id={self.id!r}, "
             f"user_id={self.user_id!r}, "
-            f"last_login_date={self.last_login_date!r})"
+            f"login_date={self.login_date!r})"
         )
 
 

@@ -21,7 +21,7 @@ async def get_by_id(db: SessionDep, lesson_id: int) -> Classroom:
 
 
 @router.get("/", response_model=list[ClassroomResponse])
-async def get_all_classrooms(
+async def get_classrooms(
         db: SessionDep,
         commons: CommonsDep,
         current_user: CurrentUer,
