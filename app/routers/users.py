@@ -23,7 +23,7 @@ async def create_user(user_auth: CurrentUser, user: UserIn, db: Session = Depend
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         try:
             user_exist = db.scalars(select(User).where(or_(User.phone_number == user.phone_number))).first()
-            user_dict = user.dict()
+            user_dict = user.model_dump()
             user_dict["record_date"] = datetime.now()
             user_dict["password"] = get_password_hash(user.password)
             user_dict["recorder_id"] = user_auth.id
@@ -78,12 +78,17 @@ async def get_user(user_auth: CurrentUser, user_id: int, db: Session = Depends(g
 
 
 @router.put("/users/update/{user_id}", tags=["users"], response_model=UserResponse)
-async def update_user(user_auth: CurrentUser, user: UserUpdate, db: Session = Depends(get_session)):
+async def update_user(user_auth: CurrentUser, user: UserUpdate, phone_number: str, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         try:
-            db_user = db.scalars(select(User).where(User.phone_number == user.phone_number)).first()
+            db_user = db.scalars(select(User).where(User.phone_number == phone_number)).first()
             if not db_user:
                 raise HTTPException(status_code=404, detail="user not found!")
+            if db_user.phone_number != user.phone_number:
+                db_user_exist = db.scalars(select(User).where(User.phone_number == user.phone_number)).first()
+                if db_user_exist and not db_user_exist.is_enabled:
+                    db_user.is_enabled = False
+                    db_user = db_user_exist
             user_dict = user.model_dump(exclude_unset=True)
             user_dict["password"] = get_password_hash(user.password)
             user_dict["record_date"] = datetime.now()

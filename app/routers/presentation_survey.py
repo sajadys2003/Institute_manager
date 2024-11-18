@@ -1,12 +1,11 @@
 from inspect import currentframe
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, APIRouter
 from app.models import PresentationSurvey
-from app.schemas import PresentationSurveyIn, PresentationSurveyResponse, PresentationSurveyUpdate
+from app.schemas import PresentationSurveyIn, PresentationSurveyOut, PresentationSurveyUpdate
 from app.dependencies import get_session, PageDep
 from sqlalchemy.orm import Session
 from datetime import datetime
-from fastapi import APIRouter
-from sqlalchemy import select, or_
+from sqlalchemy import select, and_
 from app.routers.security import CurrentUser
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -18,13 +17,13 @@ router = APIRouter()
 # -------------------------------------------------------------------------------------------------------
 
 
-@router.post("/presentation_survey/create", tags=["presentation_survey"], response_model=PresentationSurveyResponse)
+@router.post("/presentation_survey/create", tags=["presentation_survey"], response_model=PresentationSurveyOut)
 async def create_presentation_survey(
         user_auth: CurrentUser, presentation_survey: PresentationSurveyIn, db: Session = Depends(get_session)
 ):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         try:
-            presentation_survey_dict = presentation_survey.dict()
+            presentation_survey_dict = presentation_survey.model_dump()
             presentation_survey_dict["record_date"] = datetime.now()
             presentation_survey_dict["recorder_id"] = user_auth.id
             db_presentation_survey = PresentationSurvey(**presentation_survey_dict)
@@ -39,28 +38,26 @@ async def create_presentation_survey(
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.get("/presentation_survey", tags=["presentation_survey"], response_model=list[PresentationSurveyResponse])
-async def get_presentation_survey(
-        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), search: str | None = None
+@router.get("/presentation_survey", tags=["presentation_survey"], response_model=list[PresentationSurveyOut])
+async def get_presentation_surveys(
+        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), student_id: int | None = None,
+        presentation_id: int | None = None, survey_category_id: int | None = None
 ):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
-        if search:
-            presentation_survey = db.scalars(select(PresentationSurvey).where(or_(
-                PresentationSurvey.student_id == search,
-                PresentationSurvey.presentation_id == search)).limit(pagination.limit).offset(pagination.offset))
-            if presentation_survey:
-                return presentation_survey
-            raise HTTPException(status_code=404, detail="presentation survey not found!")
-        presentation_survey = db.scalars(
-            select(PresentationSurvey).limit(pagination.limit).offset(pagination.offset))
-        if presentation_survey:
-            return presentation_survey
-        raise HTTPException(status_code=404, detail="presentation survey not found")
+        criteria = and_(
+            PresentationSurvey.student_id == student_id
+            if (student_id or student_id == 0) else True,
+            PresentationSurvey.presentation_id == presentation_id
+            if (presentation_id or presentation_id == 0) else True,
+            PresentationSurvey.survey_category_id == survey_category_id
+            if (survey_category_id or survey_category_id == 0) else True
+        )
+        return db.scalars(select(PresentationSurvey).where(criteria).limit(pagination.limit).offset(pagination.offset))
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
 @router.get("/presentation_survey/{presentation_survey_id}", tags=["presentation_survey"],
-            response_model=PresentationSurveyResponse)
+            response_model=PresentationSurveyOut)
 async def get_presentation_survey(
         user_auth: CurrentUser, presentation_survey_id: int, db: Session = Depends(get_session)
 ):
@@ -74,7 +71,7 @@ async def get_presentation_survey(
 
 
 @router.put("/presentation_survey/update/{presentation_survey_id}", tags=["presentation_survey"],
-            response_model=PresentationSurveyResponse)
+            response_model=PresentationSurveyOut)
 async def update_presentation_surveys(
         user_auth: CurrentUser,
         presentation_survey: PresentationSurveyUpdate,

@@ -1,12 +1,11 @@
 from inspect import currentframe
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, APIRouter
 from app.models import Course
-from app.schemas import CourseIn, CourseResponse, CourseUpdate
+from app.schemas import CourseIn, CourseOut, CourseUpdate
 from app.dependencies import get_session, PageDep
 from sqlalchemy.orm import Session
 from datetime import datetime
-from fastapi import APIRouter
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from app.routers.security import CurrentUser
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -18,11 +17,11 @@ router = APIRouter()
 # -------------------------------------------------------------------------------------------------------
 
 
-@router.post("/course/create", tags=["course"], response_model=CourseResponse)
+@router.post("/course/create", tags=["course"], response_model=CourseOut)
 async def create_course(user_auth: CurrentUser, course: CourseIn, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         try:
-            course_dict = course.dict()
+            course_dict = course.model_dump()
             course_dict["record_date"] = datetime.now()
             course_dict["recorder_id"] = user_auth.id
             db_course = Course(**course_dict)
@@ -37,25 +36,23 @@ async def create_course(user_auth: CurrentUser, course: CourseIn, db: Session = 
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.get("/course", tags=["course"], response_model=list[CourseResponse])
+@router.get("/course", tags=["course"], response_model=list[CourseOut])
 async def get_courses(
-        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), search: str | None = None
+        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), name: str | None = None,
+        lesson_id: int | None = None
 ):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
-        if search:
-            courses = db.scalars(
-                select(Course).where(Course.name.contains(search)).limit(pagination.limit).offset(pagination.offset))
-            if courses:
-                return courses
-            raise HTTPException(status_code=404, detail="course not found!")
-        courses = db.scalars(select(Course).limit(pagination.limit).offset(pagination.offset))
-        if courses:
-            return courses
-        raise HTTPException(status_code=404, detail="course not found!")
+        criteria = and_(
+            Course.name.contains(name)
+            if name else True,
+            Course.lesson_id == lesson_id
+            if (lesson_id or lesson_id == 0) else True
+        )
+        return db.scalars(select(Course).where(criteria).limit(pagination.limit).offset(pagination.offset))
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.get("/course/{course_id}", tags=["course"], response_model=CourseResponse)
+@router.get("/course/{course_id}", tags=["course"], response_model=CourseOut)
 async def get_course(user_auth: CurrentUser, course_id: int, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         db_course = db.scalars(select(Course).where(Course.id == course_id)).first()
@@ -65,7 +62,7 @@ async def get_course(user_auth: CurrentUser, course_id: int, db: Session = Depen
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.put("/course/update/{course_id}", tags=["course"], response_model=CourseResponse)
+@router.put("/course/update/{course_id}", tags=["course"], response_model=CourseOut)
 async def update_course(
         user_auth: CurrentUser,
         course: CourseUpdate,
@@ -94,11 +91,16 @@ async def update_course(
 @router.delete("/course/delete/{course_id}", tags=["course"])
 async def delete_course(user_auth: CurrentUser, course_id: int, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
-        db_course = db.scalars(select(Course).where(Course.id == course_id)).first()
-        if db_course:
-            db.delete(db_course)
-            db.commit()
-            return {"massage": f"course with id: {course_id} successfully deleted"}
-        else:
-            raise HTTPException(status_code=404, detail="course not found!")
+        try:
+            db_course = db.scalars(select(Course).where(Course.id == course_id)).first()
+            if db_course:
+                db.delete(db_course)
+                db.commit()
+                return {"massage": f"course with id: {course_id} successfully deleted"}
+            else:
+                raise HTTPException(status_code=404, detail="course not found!")
+        except IntegrityError as e:
+            raise HTTPException(status_code=400, detail=f"integrity error deleting course {e}")
+        except SQLAlchemyError as e:
+            raise HTTPException(status_code=400, detail=f"error deleting course {e}")
     raise HTTPException(status_code=401, detail="Not enough permissions")
