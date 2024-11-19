@@ -1,5 +1,4 @@
-from fastapi import FastAPI
-from fastapi import APIRouter
+from fastapi import FastAPI, APIRouter
 
 from app.routers import (users, security, lesson_group, lesson, course, course_price, course_prerequisite, roll_call,
                          survey_category, presentation_survey, financial_category, pay_category, financial_transaction,

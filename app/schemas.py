@@ -1,6 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime
-from datetime import date
+from datetime import datetime, date
 from decimal import Decimal
 
 # define pydantic models to validate 'Request' and 'Response' body.
@@ -171,15 +170,15 @@ class LessonsGroupIn(BaseModel):
     name: str
 
 
-class LessonsGroupResponse(BaseModel):
+class LessonsGroupUpdate(BaseModel):
+    name: str | None
+
+
+class LessonsGroupOut(BaseModel):
     id: int
     name: str
     record_date: datetime
     recorder: UserOut
-
-
-class LessonsGroupUpdate(BaseModel):
-    name: str | None
 
 
 class LessonIn(BaseModel):
@@ -187,7 +186,12 @@ class LessonIn(BaseModel):
     lesson_group_id: int
 
 
-class LessonResponse(BaseModel):
+class LessonUpdate(BaseModel):
+    name: str | None
+    lesson_group_id: int | None
+
+
+class LessonOut(BaseModel):
     id: int
     name: str
     lesson_group: LessonsGroupIn
@@ -195,27 +199,22 @@ class LessonResponse(BaseModel):
     recorder: UserOut
 
 
-class LessonUpdate(BaseModel):
-    name: str | None
-    lesson_group_id: int | None
-
-
 class CourseIn(BaseModel):
     name: str
     lesson_id: int
 
 
-class CourseResponse(BaseModel):
+class CourseUpdate(BaseModel):
+    name: str | None
+    lesson_id: int | None
+
+
+class CourseOut(BaseModel):
     id: int
     name: str
     lesson: LessonIn
     record_date: datetime
     recorder: UserOut
-
-
-class CourseUpdate(BaseModel):
-    name: str | None
-    lesson_id: int | None
 
 
 class CoursePriceIn(BaseModel):
@@ -226,7 +225,14 @@ class CoursePriceIn(BaseModel):
     duration: float
 
 
-class CoursePriceResponse(BaseModel):
+class CoursePriceUpdate(BaseModel):
+    course_id: int | None
+    public_price: float | None
+    private_price: float | None
+    duration: float | None
+
+
+class CoursePriceOut(BaseModel):
     id: int
     course: CourseIn
     public_price: float
@@ -237,19 +243,17 @@ class CoursePriceResponse(BaseModel):
     recorder: UserOut
 
 
-class CoursePriceUpdate(BaseModel):
-    course_id: int | None
-    public_price: float | None
-    private_price: float | None
-    duration: float | None
-
-
 class CoursePrerequisiteIn(BaseModel):
     main_course_id: int
     prerequisite_id: int
 
 
-class CoursePrerequisiteResponse(BaseModel):
+class CoursePrerequisiteUpdate(BaseModel):
+    main_course_id: int | None
+    prerequisite_id: int | None
+
+
+class CoursePrerequisiteOut(BaseModel):
     id: int
     main_course: CourseIn
     prerequisite: CourseIn
@@ -257,9 +261,83 @@ class CoursePrerequisiteResponse(BaseModel):
     recorder: UserOut
 
 
-class CoursePrerequisiteUpdate(BaseModel):
-    main_course_id: int | None
-    prerequisite_id: int | None
+class PresentationIn(BaseModel):
+    course_id: int
+    teacher_id: int
+    is_private: bool | None = False
+    session_count: int
+    start_date: date
+    end_date: date
+
+
+class PresentationUpdate(BaseModel):
+    course_id: int | None = None
+    teacher_id: int | None = None
+    is_private: bool | None = None
+    session_count: int | None = None
+    start_date: date | None = None
+    is_enabled: bool | None = None
+
+
+class PresentationOut(BaseModel):
+    course_id: int
+    teacher_id: int
+    is_private: bool
+    session_count: int
+    start_date: date
+    end_date: date
+    recorder_id: int
+    record_date: datetime
+
+
+class SelectedPresentationIn(BaseModel):
+    presentation_id: int
+    student_id: int | None = None
+    grade: float | None = None
+
+
+class SelectedPresentationUpdate(BaseModel):
+    presentation_id: int | None = None
+    student_id: int | None = None
+    grade: float | None = None
+
+
+class SelectedPresentationOut(BaseModel):
+    id: int
+    presentation_id: int
+    student_id: int
+    grade: float | None
+    recorder_id: int
+    record_date: datetime
+
+
+class PresentationSessionIn(BaseModel):
+    presentation_id: int
+    classroom_id: int
+    start_time: datetime
+    end_time: datetime
+    is_canceled: bool | None = False
+    is_extra: bool | None = False
+
+
+class PresentationSessionUpdate(BaseModel):
+    presentation_id: int | None = None
+    classroom_id: int | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    is_canceled: bool | None = None
+    is_extra: bool | None = None
+
+
+class PresentationSessionOut(BaseModel):
+    presentation_id: int
+    classroom_id: int
+    start_time: datetime
+    end_time: datetime
+    is_canceled: bool
+    is_extra: bool
+    recorder_id: int | None
+    record_date: datetime
 
 
 class RollCallIn(BaseModel):
@@ -270,17 +348,6 @@ class RollCallIn(BaseModel):
     comment: str
 
 
-class RollCallResponse(BaseModel):
-    id: int
-    presentation_session: int
-    student: UserOut
-    is_present: bool
-    delay: int
-    comment: str
-    record_date: datetime
-    recorder: UserOut
-
-
 class RollCallUpdate(BaseModel):
     presentation_session_id: int | None
     student_id: int | None
@@ -289,19 +356,30 @@ class RollCallUpdate(BaseModel):
     comment: str | None
 
 
-class SurveyCategoryIn(BaseModel):
-    name: str
-
-
-class SurveyCategoryResponse(BaseModel):
+class RollCallOut(BaseModel):
     id: int
-    name: str
+    presentation_session: PresentationSessionOut
+    student: UserOut
+    is_present: bool
+    delay: int
+    comment: str
     record_date: datetime
     recorder: UserOut
 
 
+class SurveyCategoryIn(BaseModel):
+    name: str
+
+
 class SurveyCategoryUpdate(BaseModel):
     name: str | None = None
+
+
+class SurveyCategoryOut(BaseModel):
+    id: int
+    name: str
+    record_date: datetime
+    recorder: UserOut
 
 
 class PresentationSurveyIn(BaseModel):
@@ -311,16 +389,6 @@ class PresentationSurveyIn(BaseModel):
     score: int
 
 
-class PresentationSurveyResponse(BaseModel):
-    id: int
-    student: UserOut
-    presentation: int
-    survey_category: SurveyCategoryResponse
-    score: int
-    recorder: int
-    record_date: datetime
-
-
 class PresentationSurveyUpdate(BaseModel):
     student_id: int | None = None
     presentation_id: int | None = None
@@ -328,34 +396,68 @@ class PresentationSurveyUpdate(BaseModel):
     score: int | None = None
 
 
-class FinancialCategoryIn(BaseModel):
-    name: str
-
-
-class FinancialCategoryResponse(BaseModel):
+class PresentationSurveyOut(BaseModel):
     id: int
-    name: str
+    student: UserOut
+    presentation: PresentationOut
+    survey_category: SurveyCategoryIn
+    score: int
     recorder: UserOut
     record_date: datetime
+
+
+class SelectedExamIn(BaseModel):
+    student_id: int
+    exam_schedule_id: int
+    is_participated: bool | None = True
+    grade: float | None = None
+
+
+class SelectedExamUpdate(BaseModel):
+    student_id: int | None
+    exam_schedule_id: int | None
+    is_participated: bool | None = None
+    grade: float | None = None
+
+
+class SelectedExamOut(BaseModel):
+    id: int
+    student_id: int
+    exam_schedule_id: int
+    is_participated: bool
+    grade: float | None
+    recorder_id: int
+    record_date: datetime
+
+
+class FinancialCategoryIn(BaseModel):
+    name: str
 
 
 class FinancialCategoryUpdate(BaseModel):
     name: str | None = None
 
 
-class PayCategoryIn(BaseModel):
-    name: str
-
-
-class PayCategoryResponse(BaseModel):
+class FinancialCategoryOut(BaseModel):
     id: int
     name: str
     recorder: UserOut
     record_date: datetime
 
 
+class PayCategoryIn(BaseModel):
+    name: str
+
+
 class PayCategoryUpdate(BaseModel):
     name: str | None = None
+
+
+class PayCategoryOut(BaseModel):
+    id: int
+    name: str
+    recorder: UserOut
+    record_date: datetime
 
 
 class FinancialTransactionIn(BaseModel):
@@ -370,17 +472,17 @@ class FinancialTransactionIn(BaseModel):
     pay_category_id: int
 
 
-class FinancialTransactionResponse(BaseModel):
+class FinancialTransactionOut(BaseModel):
     id: int
     user: UserOut
-    financial_category: FinancialCategoryResponse
+    financial_category: FinancialCategoryIn | None = None
     amount: Decimal
-    presentation: int
-    selected_presentation: int
-    selected_exam: int
+    presentation: PresentationOut | None = None
+    selected_presentation: SelectedPresentationOut | None = None
+    selected_exam: SelectedExamOut | None = None
     transaction_date: datetime
     pay_reference: str
-    pay_category: PayCategoryResponse
+    pay_category: PayCategoryIn | None = None
     recorder: UserOut
     record_date: datetime
 
@@ -397,7 +499,6 @@ class FinancialTransactionUpdate(BaseModel):
     pay_category_id: int | None = None
 
 
-class LoginResponse(BaseModel):
-    id: int
+class LoginOut(BaseModel):
     user: UserOut
     login_date: datetime

@@ -1,12 +1,11 @@
 from inspect import currentframe
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, APIRouter
 from app.models import CoursePrice
-from app.schemas import CoursePriceIn, CoursePriceResponse, CoursePriceUpdate
+from app.schemas import CoursePriceIn, CoursePriceOut, CoursePriceUpdate
 from app.dependencies import get_session, PageDep
 from sqlalchemy.orm import Session
 from datetime import datetime
-from fastapi import APIRouter
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from app.routers.security import CurrentUser
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -18,7 +17,7 @@ router = APIRouter()
 # -------------------------------------------------------------------------------------------------------
 
 
-@router.post("/course_price/create", tags=["course_price"], response_model=CoursePriceResponse)
+@router.post("/course_price/create", tags=["course_price"], response_model=CoursePriceOut)
 async def create_course_price(user_auth: CurrentUser, course_price: CoursePriceIn, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         try:
@@ -37,24 +36,23 @@ async def create_course_price(user_auth: CurrentUser, course_price: CoursePriceI
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.get("/course_price", tags=["course_price"], response_model=list[CoursePriceResponse])
+@router.get("/course_price", tags=["course_price"], response_model=list[CoursePriceOut])
 async def get_course_prices(
-        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), course_id: int | None = None
+        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), course_id: int | None = None,
+        from_date: datetime | None = None, to_date: datetime | None = None
 ):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
-        if course_id:
-            course_prices = db.scalars(
-                select(CoursePrice).where(
-                    CoursePrice.course_id == course_id).limit(pagination.limit).offset(pagination.offset))
-            return course_prices
-        course_prices = db.scalars(select(CoursePrice).limit(pagination.limit).offset(pagination.offset))
-        if course_prices:
-            return course_prices
-        raise HTTPException(status_code=404, detail="course price not found!")
+        criteria = and_(CoursePrice.course_id == course_id
+                        if (course_id or course_id == 0) else True,
+                        CoursePrice.date >= from_date
+                        if from_date else True,
+                        CoursePrice.date <= to_date
+                        if to_date else True)
+        return db.scalars(select(CoursePrice).where(criteria).limit(pagination.limit).offset(pagination.offset))
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.get("/course_price/{course_price_id}", tags=["course_price"], response_model=CoursePriceResponse)
+@router.get("/course_price/{course_price_id}", tags=["course_price"], response_model=CoursePriceOut)
 async def get_course_price(user_auth: CurrentUser, course_price_id: int, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         db_course_price = db.scalars(select(CoursePrice).where(CoursePrice.id == course_price_id)).first()
@@ -64,7 +62,7 @@ async def get_course_price(user_auth: CurrentUser, course_price_id: int, db: Ses
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.put("/course_price/update/{course_price_id}", tags=["course_price"], response_model=CoursePriceResponse)
+@router.put("/course_price/update/{course_price_id}", tags=["course_price"], response_model=CoursePriceOut)
 async def update_course_price(
         user_auth: CurrentUser,
         course_price: CoursePriceUpdate,

@@ -1,11 +1,10 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, APIRouter
 from app.models import RollCall
-from app.schemas import RollCallIn, RollCallResponse, RollCallUpdate
+from app.schemas import RollCallIn, RollCallOut, RollCallUpdate
 from app.dependencies import get_session, PageDep
 from sqlalchemy.orm import Session
 from datetime import datetime
-from fastapi import APIRouter
-from sqlalchemy import select, or_
+from sqlalchemy import select, and_
 from app.routers.security import CurrentUser
 from inspect import currentframe
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -19,11 +18,11 @@ router = APIRouter()
 # -------------------------------------------------------------------------------------------------------
 
 
-@router.post("/roll_call/create", tags=["roll_call"], response_model=RollCallResponse)
+@router.post("/roll_call/create", tags=["roll_call"], response_model=RollCallOut)
 async def create_roll_call(user_auth: CurrentUser, roll_call: RollCallIn, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         try:
-            roll_call_dict = roll_call.dict()
+            roll_call_dict = roll_call.model_dump()
             roll_call_dict["record_date"] = datetime.now()
             roll_call_dict["recorder_id"] = user_auth.id
             db_roll_call = RollCall(**roll_call_dict)
@@ -38,23 +37,23 @@ async def create_roll_call(user_auth: CurrentUser, roll_call: RollCallIn, db: Se
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.get("/roll_call", tags=["roll_call"], response_model=list[RollCallResponse])
-async def get_roll_call(
-        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), search: int | None = None):
+@router.get("/roll_call", tags=["roll_call"], response_model=list[RollCallOut])
+async def get_roll_calls(
+        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session),
+        presentation_session_id: int | None = None, student_id: int | None = None
+):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
-        if search:
-            roll_call = db.scalars(select(RollCall).where(or_(
-                RollCall.student_id == search, RollCall.presentation_session_id == search)).
-                                   limit(pagination.limit).offset(pagination.offset))
-            return roll_call
-        roll_calls = db.scalars(select(RollCall).limit(pagination.limit).offset(pagination.offset))
-        if roll_calls:
-            return roll_calls
-        raise HTTPException(status_code=404, detail="roll call not found")
+        criteria = and_(
+            RollCall.presentation_session_id == presentation_session_id
+            if (presentation_session_id or presentation_session_id == 0) else True,
+            RollCall.student_id == student_id
+            if (student_id or student_id == 0) else True
+        )
+        return db.scalars(select(RollCall).where(criteria).limit(pagination.limit).offset(pagination.offset))
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.get("/roll_call/{roll_call_id}", tags=["roll_call"], response_model=RollCallResponse)
+@router.get("/roll_call/{roll_call_id}", tags=["roll_call"], response_model=RollCallOut)
 async def get_roll_call(user_auth: CurrentUser, roll_call_id: int, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         db_roll_call = db.scalars(select(RollCall).where(RollCall.id == roll_call_id)).first()
@@ -64,7 +63,7 @@ async def get_roll_call(user_auth: CurrentUser, roll_call_id: int, db: Session =
     raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.put("/roll_call/update/{roll_call_id}", tags=["roll_call"], response_model=RollCallResponse)
+@router.put("/roll_call/update/{roll_call_id}", tags=["roll_call"], response_model=RollCallOut)
 async def update_roll_call(
         user_auth: CurrentUser,
         roll_call: RollCallUpdate,
