@@ -6,10 +6,10 @@ from app.dependencies import get_session, PageDep
 from sqlalchemy.orm import Session
 from datetime import datetime
 from sqlalchemy import select
-from app.routers.security import get_current_user, authorized
+from app.routers.security import CurrentUser, authorized
 from sqlalchemy.exc import IntegrityError
 
-router = APIRouter()
+router = APIRouter(prefix="/lesson_groups")
 
 
 # Endpoints of lesson group
@@ -17,9 +17,9 @@ router = APIRouter()
 # -------------------------------------------------------------------------------------------------------
 
 
-@router.post("/", tags=["lessons_group"], response_model=LessonGroupResponse)
-async def create_lessons_group(
-        user_auth: get_current_user, lesson_group: LessonGroupIn, db: Session = Depends(get_session)
+@router.post("/", tags=["lesson_groups"], response_model=LessonGroupResponse)
+async def create_lesson_group(
+        user_auth: CurrentUser, lesson_group: LessonGroupIn, db: Session = Depends(get_session)
 ):
     operation = currentframe().f_code.co_name
     if authorized(user_auth, operation):
@@ -36,9 +36,9 @@ async def create_lessons_group(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e.args}")
 
 
-@router.get("/", tags=["lessons_group"], response_model=list[LessonGroupResponse])
-async def get_lessons_groups(
-        user_auth: get_current_user, pagination: PageDep, db: Session = Depends(get_session), search: str | None = None
+@router.get("/", tags=["lesson_groups"], response_model=list[LessonGroupResponse])
+async def get_lesson_groups(
+        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), search: str | None = None
 ):
     operation = currentframe().f_code.co_name
     if authorized(user_auth, operation):
@@ -46,9 +46,9 @@ async def get_lessons_groups(
         return db.scalars(select(LessonGroup).where(criteria).limit(pagination.limit).offset(pagination.offset))
 
 
-@router.get("/{lessons_group_id}", tags=["lessons_group"], response_model=LessonGroupResponse)
-async def get_lessons_group_by_id(
-        user_auth: get_current_user,
+@router.get("/{lesson_group_id}", tags=["lesson_groups"], response_model=LessonGroupResponse)
+async def get_lesson_group_by_id(
+        user_auth: CurrentUser,
         lessons_group_id: int,
         db: Session = Depends(get_session)
 ):
@@ -58,12 +58,12 @@ async def get_lessons_group_by_id(
             select(LessonGroup).where(LessonGroup.id == lessons_group_id)).first()
         if db_lessons_group:
             return db_lessons_group
-        raise HTTPException(status_code=404, detail="lesson group not found!")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="lesson group not found!")
 
 
-@router.put("/{lessons_group_id}", tags=["lessons_group"], response_model=LessonGroupResponse)
-async def update_lessons_group(
-        user_auth: get_current_user,
+@router.put("/{lesson_group_id}", tags=["lesson_groups"], response_model=LessonGroupResponse)
+async def update_lesson_group(
+        user_auth: CurrentUser,
         lessons_group: LessonGroupUpdate,
         lessons_group_id: int,
         db: Session = Depends(get_session)
@@ -74,7 +74,7 @@ async def update_lessons_group(
             db_lessons_group = db.scalars(
                 select(LessonGroup).where(LessonGroup.id == lessons_group_id)).first()
             if db_lessons_group is None:
-                raise HTTPException(status_code=404, detail="lessons group not found!")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="lessons group not found!")
             lessons_group_dict = lessons_group.model_dump(exclude_unset=True)
             lessons_group_dict["record_date"] = datetime.now()
             lessons_group_dict["recorder_id"] = user_auth.id
@@ -83,11 +83,11 @@ async def update_lessons_group(
             db.commit()
             return db_lessons_group
         except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"{e.args}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e.args}")
 
 
-@router.delete("/{lessons_group_id}", tags=["lessons_group"])
-async def delete_lessons_group(user_auth: get_current_user, lessons_group_id: int, db: Session = Depends(get_session)):
+@router.delete("/{lesson_group_id}", tags=["lesson_groups"])
+async def delete_lesson_group(user_auth: CurrentUser, lessons_group_id: int, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         try:
             db_lessons_group = db.scalars(
@@ -95,11 +95,8 @@ async def delete_lessons_group(user_auth: get_current_user, lessons_group_id: in
             if db_lessons_group:
                 db.delete(db_lessons_group)
                 db.commit()
-                return {"massage": f"lessons group with id: {lessons_group_id} successfully deleted"}
+                return {"massage": f"lesson group with id: {lessons_group_id} successfully deleted"}
             else:
-                raise HTTPException(status_code=404, detail="lessons group not found!")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="lesson group not found!")
         except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"integrity error deleting lesson group {e}")
-        except SQLAlchemyError as e:
-            raise HTTPException(status_code=400, detail=f"error deleting lesson group {e}")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e.args}")

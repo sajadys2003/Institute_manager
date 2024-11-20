@@ -1,15 +1,15 @@
 from inspect import currentframe
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import Depends, HTTPException, APIRouter, status
 from app.models import FinancialTransaction
-from app.schemas import FinancialTransactionIn, FinancialTransactionOut, FinancialTransactionUpdate
+from app.schemas import FinancialTransactionIn, FinancialTransactionResponse, FinancialTransactionUpdate
 from app.dependencies import get_session, PageDep
 from sqlalchemy.orm import Session
 from datetime import datetime
 from sqlalchemy import select, and_
-from app.routers.security import CurrentUser
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from app.routers.security import CurrentUser, authorized
+from sqlalchemy.exc import IntegrityError
 
-router = APIRouter()
+router = APIRouter(prefix="/financial_transactions")
 
 
 # Endpoints of financial transaction
@@ -17,12 +17,12 @@ router = APIRouter()
 # -------------------------------------------------------------------------------------------------------
 
 
-@router.post("/financial_transaction/create", tags=["financial_transaction"],
-             response_model=FinancialTransactionOut)
+@router.post("/", tags=["financial_transactions"], response_model=FinancialTransactionResponse)
 async def create_financial_transaction(
         user_auth: CurrentUser, financial_transaction: FinancialTransactionIn, db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         try:
             x = 0
             financial_transaction_dict = financial_transaction.model_dump()
@@ -41,17 +41,13 @@ async def create_financial_transaction(
                 db.refresh(db_financial_transaction)
                 return db_financial_transaction
             raise HTTPException(
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="one of presentation_id , selected_presentation_id and selected_exam_id must enter")
         except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"integrity error adding financial transaction {e}")
-        except SQLAlchemyError as e:
-            raise HTTPException(status_code=400, detail=f"error adding financial transaction {e}")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e.args}")
 
 
-@router.get("/financial_transaction", tags=["financial_transaction"],
-            response_model=list[FinancialTransactionOut])
+@router.get("/", tags=["financial_transactions"], response_model=list[FinancialTransactionResponse])
 async def get_financial_transactions(
         user_auth: CurrentUser,
         pagination: PageDep,
@@ -62,7 +58,8 @@ async def get_financial_transactions(
         selected_presentation_id: int | None = None,
         selected_exam_id: int | None = None
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         criteria = and_(
             FinancialTransaction.user_id == user_id
             if (user_id or user_id == 0) else True,
@@ -77,37 +74,39 @@ async def get_financial_transactions(
         )
         return db.scalars(select(FinancialTransaction).where(
             criteria).limit(pagination.limit).offset(pagination.offset))
-    raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.get("/financial_transaction/{financial_transaction_id}", tags=["financial_transaction"],
-            response_model=FinancialTransactionOut)
-async def get_financial_transaction(
+@router.get(
+    "/{financial_transaction_id}", tags=["financial_transactions"], response_model=FinancialTransactionResponse
+)
+async def get_financial_transaction_by_id(
         user_auth: CurrentUser, financial_transaction_id: int, db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         db_financial_transaction = db.scalars(
             select(FinancialTransaction).where(FinancialTransaction.id == financial_transaction_id)).first()
         if db_financial_transaction:
             return db_financial_transaction
-        raise HTTPException(status_code=404, detail="financial transaction not found!")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="financial transaction not found!")
 
 
-@router.put("/financial_transaction/update/{financial_transaction_id}", tags=["financial_transaction"],
-            response_model=FinancialTransactionOut)
+@router.put(
+    "/{financial_transaction_id}", tags=["financial_transactions"], response_model=FinancialTransactionResponse
+)
 async def update_financial_transaction(
         user_auth: CurrentUser,
         financial_transaction: FinancialTransactionUpdate,
         financial_transaction_id: int,
         db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         try:
             db_financial_transaction = db.scalars(
                 select(FinancialTransaction).where(FinancialTransaction.id == financial_transaction_id)).first()
             if db_financial_transaction is None:
-                raise HTTPException(status_code=404, detail="financial transaction not found!")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="financial transaction not found!")
             x = 0
             financial_transaction_dict = financial_transaction.model_dump(exclude_unset=True)
             if "presentation_id" in financial_transaction_dict.keys():
@@ -127,26 +126,23 @@ async def update_financial_transaction(
                 db.commit()
                 return db_financial_transaction
             raise HTTPException(
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="one of presentation_id , selected_presentation_id and selected_exam_id must enter")
         except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"integrity error updating financial transaction {e}")
-        except SQLAlchemyError as e:
-            raise HTTPException(status_code=400, detail=f"error updating financial transaction {e}")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e.args}")
 
 
-@router.delete("/financial_transaction/delete/{financial_transaction_id}", tags=["financial_transaction"])
+@router.delete("/{financial_transaction_id}", tags=["financial_transactions"])
 async def delete_financial_transaction(
         user_auth: CurrentUser, financial_transaction_id: int, db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         db_financial_transaction = db.scalars(
             select(FinancialTransaction).where(FinancialTransaction.id == financial_transaction_id)).first()
         if db_financial_transaction:
-            db.delete(db_financial_transaction)
+            db_financial_transaction.is_enabled = False
             db.commit()
             return {"massage": f"financial transaction with id: {financial_transaction_id} successfully deleted"}
         else:
-            raise HTTPException(status_code=404, detail="financial transaction not found!")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="financial transaction not found!")

@@ -1,15 +1,14 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Annotated
 import jwt
 from fastapi import Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from jwt.exceptions import InvalidTokenError
 from app.dependencies import SessionDep
-from app.models import User, Login
-from sqlalchemy import select
-from app.schemas import UserAuth
+from app.models import User, LoginLog
+from sqlalchemy import and_
 
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
@@ -26,18 +25,6 @@ class Token(BaseModel):
     token_type: str
 
 
-class TokenData(BaseModel):
-    username: str | None = None
-
-
-def get_user(username: str):
-    user = SessionDep.scalars(select(User).where(User.phone_number == username)).first()
-    if user:
-        user_dict = user.__dict__
-        user_dict["permissions_list"] = user.permissions_list
-        return UserAuth(**user_dict)
-
-
 def get_password_hash(password):
     return pwd_context.hash(password)
 
@@ -46,64 +33,80 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def authenticate_user(username: str, password: str):
-    user = get_user(username)
+def authenticate_user(db: SessionDep, username: str, password: str) -> User:
+    criteria = and_(User.phone_number == username, User.is_enabled)
+    user = db.query(User).where(criteria).scalar()
+
     if not user or not verify_password(password, user.password):
-        return False
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
     return user
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+def create_token(sub: str):
+    payload = {
+        "sub": sub,
+        "exp": datetime.now() + timedelta(ACCESS_TOKEN_EXPIRE_MINUTES)
+    }
+    encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return Token(access_token=encoded_jwt, token_type="bearer")
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except InvalidTokenError:
-        raise credentials_exception
-    user = get_user(username=token_data.username)
-    if user is None:
-        raise credentials_exception
-    return user
+def create_login_log(db: SessionDep, user_id: int):
+    new_record = LoginLog(user_id=user_id, login_date=datetime.now())
+    db.add(new_record)
+    db.commit()
 
 
 @router.post("/token")
 async def login_for_access_token(
-        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+        db: SessionDep,
+        form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> Token:
-    user = authenticate_user(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    authenticated_user = authenticate_user(db, form_data.username, form_data.password)
+
+    if authenticated_user:
+        token = create_token(
+            sub=authenticated_user.phone_number
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.phone_number}, expires_delta=access_token_expires
+        create_login_log(db, authenticated_user.id)
+        return token
+
+
+async def get_current_user(
+        db: SessionDep,
+        token: Annotated[str, Depends(oauth2_scheme)]
+) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials"
     )
-    user_login_dict = {"user_id": user.id, "login_date": datetime.now()}
-    user_login = Login(**user_login_dict)
-    SessionDep.add(user_login)
-    SessionDep.commit()
-    return Token(access_token=access_token, token_type="bearer")
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload["sub"]
+        criteria = and_(User.phone_number == username, User.is_enabled)
+        user = db.query(User).where(criteria).scalar()
+        if not user:
+            raise credentials_exception
+
+    except (InvalidTokenError, ValidationError):
+        raise credentials_exception
+
+    return user
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def authorized(
+        current_user: User,
+        operation: str
+) -> User:
+    if not current_user.is_super_admin:
+
+        permissions_list = current_user.permissions_list
+        if not permissions_list or operation not in permissions_list:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not enough permissions"
+            )
+    return current_user

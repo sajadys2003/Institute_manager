@@ -1,8 +1,8 @@
 from fastapi import FastAPI, APIRouter
 
-from app.routers import (users, security, lesson_group, lesson, course, course_price, course_prerequisite, roll_call,
-                         survey_category, presentation_survey, financial_category, pay_category, financial_transaction,
-                         login_log)
+from app.routers import (users, security, lesson_groups, lessons, courses, course_prices, course_prerequisites,
+                         roll_calls, survey_categories, presentation_surveys, financial_categories, pay_categories,
+                         financial_transactions, login_logs)
 
 # APIRouter, used to group path operations and structure our app in multiple files.
 
@@ -16,8 +16,8 @@ def include_routers(routers: list[APIRouter]):
 
 include_routers(
     routers=[
-        security.router, users.router, lesson_group.router, lesson.router, course.router, course_price.router,
-        course_prerequisite.router, roll_call.router, survey_category.router, presentation_survey.router,
-        financial_category.router, pay_category.router, financial_transaction.router, login_log.router
+        security.router, users.router, lesson_groups.router, lessons.router, courses.router, course_prices.router,
+        course_prerequisites.router, roll_calls.router, survey_categories.router, presentation_surveys.router,
+        financial_categories.router, pay_categories.router, financial_transactions.router, login_logs.router
     ]
 )
