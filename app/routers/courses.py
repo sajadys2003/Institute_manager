@@ -9,7 +9,7 @@ from sqlalchemy import select, and_
 from app.routers.security import CurrentUser
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-router = APIRouter()
+router = APIRouter(prefix="/courses")
 
 
 # Endpoints of course
@@ -17,7 +17,7 @@ router = APIRouter()
 # -------------------------------------------------------------------------------------------------------
 
 
-@router.post("/course/create", tags=["course"], response_model=CourseOut)
+@router.post("/create", tags=["course"], response_model=CourseOut)
 async def create_course(user_auth: CurrentUser, course: CourseIn, db: Session = Depends(get_session)):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         try:

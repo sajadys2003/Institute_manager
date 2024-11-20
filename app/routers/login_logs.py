@@ -17,7 +17,7 @@ router = APIRouter()
 
 @router.get("/login_log", tags=["login_log"], response_model=list[LoginOut])
 async def get_logins(user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session),
-                    from_date: datetime | None = None, to_date: datetime | None = None):
+                     from_date: datetime | None = None, to_date: datetime | None = None):
     if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
         criteria = and_(from_date <= Login.login_date if from_date else True,
                         Login.login_date <= to_date if to_date else True
