@@ -1,15 +1,15 @@
 from inspect import currentframe
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import Depends, HTTPException, APIRouter, status
 from app.models import PresentationSurvey
-from app.schemas import PresentationSurveyIn, PresentationSurveyOut, PresentationSurveyUpdate
+from app.schemas import PresentationSurveyIn, PresentationSurveyResponse, PresentationSurveyUpdate
 from app.dependencies import get_session, PageDep
 from sqlalchemy.orm import Session
 from datetime import datetime
 from sqlalchemy import select, and_
-from app.routers.security import CurrentUser
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from app.routers.security import CurrentUser, authorized
+from sqlalchemy.exc import IntegrityError
 
-router = APIRouter()
+router = APIRouter(prefix="/presentation_surveys")
 
 
 # Endpoints of presentation survey
@@ -17,11 +17,12 @@ router = APIRouter()
 # -------------------------------------------------------------------------------------------------------
 
 
-@router.post("/presentation_survey/create", tags=["presentation_survey"], response_model=PresentationSurveyOut)
+@router.post("/", tags=["presentation_surveys"], response_model=PresentationSurveyResponse)
 async def create_presentation_survey(
         user_auth: CurrentUser, presentation_survey: PresentationSurveyIn, db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         try:
             presentation_survey_dict = presentation_survey.model_dump()
             presentation_survey_dict["record_date"] = datetime.now()
@@ -32,18 +33,20 @@ async def create_presentation_survey(
             db.refresh(db_presentation_survey)
             return db_presentation_survey
         except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"integrity error adding presentation survey {e}")
-        except SQLAlchemyError as e:
-            raise HTTPException(status_code=400, detail=f"error adding presentation survey {e}")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+            raise HTTPException(status_code=400, detail=f"{e.args}")
 
 
-@router.get("/presentation_survey", tags=["presentation_survey"], response_model=list[PresentationSurveyOut])
+@router.get("/", tags=["presentation_surveys"], response_model=list[PresentationSurveyResponse])
 async def get_presentation_surveys(
-        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), student_id: int | None = None,
-        presentation_id: int | None = None, survey_category_id: int | None = None
+        user_auth: CurrentUser,
+        pagination: PageDep,
+        db: Session = Depends(get_session),
+        student_id: int | None = None,
+        presentation_id: int | None = None,
+        survey_category_id: int | None = None
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         criteria = and_(
             PresentationSurvey.student_id == student_id
             if (student_id or student_id == 0) else True,
@@ -53,25 +56,22 @@ async def get_presentation_surveys(
             if (survey_category_id or survey_category_id == 0) else True
         )
         return db.scalars(select(PresentationSurvey).where(criteria).limit(pagination.limit).offset(pagination.offset))
-    raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.get("/presentation_survey/{presentation_survey_id}", tags=["presentation_survey"],
-            response_model=PresentationSurveyOut)
-async def get_presentation_survey(
+@router.get("/{presentation_survey_id}", tags=["presentation_surveys"], response_model=PresentationSurveyResponse)
+async def get_presentation_survey_by_id(
         user_auth: CurrentUser, presentation_survey_id: int, db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         db_presentation_survey = db.scalars(
             select(PresentationSurvey).where(PresentationSurvey.id == presentation_survey_id)).first()
         if db_presentation_survey:
             return db_presentation_survey
-        raise HTTPException(status_code=404, detail="presentation survey not found!")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="presentation survey not found!")
 
 
-@router.put("/presentation_survey/update/{presentation_survey_id}", tags=["presentation_survey"],
-            response_model=PresentationSurveyOut)
+@router.put("/{presentation_survey_id}", tags=["presentation_surveys"], response_model=PresentationSurveyResponse)
 async def update_presentation_surveys(
         user_auth: CurrentUser,
         presentation_survey: PresentationSurveyUpdate,
@@ -92,17 +92,15 @@ async def update_presentation_surveys(
             db.commit()
             return db_presentation_survey
         except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"integrity error updating presentation survey {e}")
-        except SQLAlchemyError as e:
-            raise HTTPException(status_code=400, detail=f"error updating presentation survey {e}")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e.args}")
 
 
-@router.delete("/presentation_survey/delete/{presentation_survey_id}", tags=["presentation_survey"])
+@router.delete("/{presentation_survey_id}", tags=["presentation_surveys"])
 async def delete_presentation_survey(
         user_auth: CurrentUser, presentation_survey_id: int, db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         db_presentation_survey = db.scalars(
             select(PresentationSurvey).where(PresentationSurvey.id == presentation_survey_id)).first()
         if db_presentation_survey:
@@ -110,5 +108,4 @@ async def delete_presentation_survey(
             db.commit()
             return {"massage": f"presentation survey with id: {presentation_survey_id} successfully deleted"}
         else:
-            raise HTTPException(status_code=404, detail="presentation survey not found!")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="presentation survey not found!")

@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import ForeignKey, Identity
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from inspect import currentframe
 from datetime import datetime, date
@@ -277,7 +277,7 @@ class User(Base):
     recorder_of_holidays: Mapped[list["Holiday"]] = relationship(
         back_populates="recorder"
     )
-    user_of_logins: Mapped[list["Login"]] = relationship(
+    user_of_logins: Mapped[list["LoginLog"]] = relationship(
         back_populates="user"
     )
 
@@ -465,7 +465,6 @@ class CoursePrice(Base):
 class CoursePrerequisite(Base):
     __tablename__ = "course_prerequisites"
 
-    id: Mapped[int] = mapped_column(Identity(start=1))
     main_course_id = mapped_column(ForeignKey("courses.id", ondelete="RESTRICT"), nullable=False, primary_key=True)
     prerequisite_id = mapped_column(ForeignKey("courses.id", ondelete="RESTRICT"), nullable=False, primary_key=True)
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
@@ -705,7 +704,6 @@ class PresentationSession(Base):
 class RollCall(Base):
     __tablename__ = "roll_calls"
 
-    id: Mapped[int] = mapped_column(Identity(start=1))
     presentation_session_id = mapped_column(ForeignKey(
         "presentation_sessions.id", ondelete="RESTRICT"), nullable=False, primary_key=True)
     student_id = mapped_column(ForeignKey("users.id"), nullable=False, primary_key=True)
@@ -730,7 +728,6 @@ class RollCall(Base):
     def __repr__(self) -> str:
         return (
             f"RollCall("
-            f"id={self.id!r}, "
             f"presentation_session_id={self.presentation_session_id!r}, "
             f"student_id={self.student_id!r}, "
             f"is_present={self.is_present!r}, "
@@ -770,10 +767,10 @@ class SurveyCategory(Base):
 class PresentationSurvey(Base):
     __tablename__ = "presentation_surveys"
 
-    id: Mapped[int] = mapped_column(Identity(start=1))
-    student_id = mapped_column(ForeignKey("users.id"), nullable=False, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_id = mapped_column(ForeignKey("users.id"), nullable=False)
     presentation_id = mapped_column(ForeignKey(
-        "presentations.id", ondelete="RESTRICT"), nullable=False, primary_key=True)
+        "presentations.id", ondelete="RESTRICT"), nullable=False)
     survey_category_id = mapped_column(ForeignKey("survey_categories.id", ondelete="RESTRICT"), nullable=False)
     score: Mapped[int]
     recorder_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
@@ -973,6 +970,7 @@ class FinancialTransaction(Base):
     transaction_date: Mapped[datetime] = mapped_column(default=datetime.now())
     pay_reference: Mapped[str]
     pay_category_id = mapped_column(ForeignKey("pay_categories.id", ondelete="RESTRICT"), nullable=False)
+    is_enabled: Mapped[bool]
     recorder_id = mapped_column(ForeignKey("users.id"), nullable=False)
     record_date: Mapped[datetime]
 
@@ -1040,8 +1038,8 @@ class Holiday(Base):
         )
 
 
-class Login(Base):
-    __tablename__ = "logins"
+class LoginLog(Base):
+    __tablename__ = "login_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id = mapped_column(ForeignKey("users.id"), nullable=False)

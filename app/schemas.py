@@ -8,77 +8,58 @@ from decimal import Decimal
 # roles
 class RoleIn(BaseModel):
     name: str
-    is_enabled: bool | None = True
 
 
 class RoleUpdate(BaseModel):
     name: str | None = None
-    is_enabled: bool | None = None
 
 
 class RoleOut(BaseModel):
     id: int
     name: str
-    is_enabled: bool
     record_date: datetime
     recorder_id: int | None
 
 
 # permissions
-class PermissionIn(BaseModel):
-    name: str
-    parent_id: int | None = None
-    is_enabled: bool | None = True
-
-
-class PermissionUpdate(BaseModel):
-    name: str | None = None
-    parent_id: int | None = None
-    is_enabled: bool | None = None
-
-
 class PermissionOut(BaseModel):
     id: int
     name: str
     parent_id: int | None
-    is_enabled: bool
-    recorder_id: int | None
-    record_date: datetime
 
 
 # permission_groups
 class PermissionGroupIn(BaseModel):
     name: str
-    is_enabled: bool | None = True
 
 
 class PermissionGroupUpdate(BaseModel):
     name: str | None = None
-    is_enabled: bool | None = None
 
 
 class PermissionGroupOut(BaseModel):
     id: int
     name: str
-    is_enabled: bool
+    recorder_id: int
     record_date: datetime
 
 
 # permission_group_define
 class PermissionGroupDefineIn(BaseModel):
-    permission_id: int
     permission_group_id: int
+    permission_id: int
 
 
 class PermissionGroupDefineUpdate(BaseModel):
-    permission_id: int | None = None
     permission_group_id: int | None = None
+    permission_id: int | None = None
 
 
 class PermissionGroupDefineOut(BaseModel):
-    id: int
-    permission_id: int
     permission_group_id: int
+    permission_id: int
+    recorder_id: int
+    record_date: datetime
 
 
 # users
@@ -97,11 +78,6 @@ class UserIn(BaseModel):
     password: str
     permission_group_id: int | None = None
     is_enabled: bool = True
-
-
-class UserAuth(UserIn):
-    permissions_list: list
-    id: int
 
 
 class UserUpdate(BaseModel):
@@ -130,57 +106,34 @@ class UserOut(BaseModel):
     date_of_birth: date
     national_code: str
     phone_number: str
-    role_id: int | None
+    role_id: int | None = None
     recruitment_date: datetime
-    is_super_admin: bool | None
-    is_panel_user: bool
-    permission_group_id: int | None
-    is_enabled: bool
+    is_super_admin: bool = False
+    is_panel_user: bool = False
+    password: str
+    permission_group_id: int | None = None
+    is_enabled: bool = True
+    record_date: datetime
     recorder_id: int | None
 
 
-# response models
-
-class RoleResponse(RoleOut):
-    recorder: UserOut | None
-
-
-class PermissionResponse(PermissionOut):
-    parent: PermissionOut | None
-    recorder: UserOut | None
-
-
-class PermissionGroupResponse(PermissionOut):
-    recorder: UserOut | None
-
-
-class PermissionGroupDefineResponse(PermissionGroupDefineOut):
-    permission: PermissionOut
-    permission_group: PermissionGroupOut
-    recorder: UserOut | None
-
-
-class UserResponse(UserOut):
-    role: RoleOut | None
-    permission_group: PermissionGroupOut | None
-    recorder: UserOut | None
-
-
-class LessonsGroupIn(BaseModel):
+# lesson_groups
+class LessonGroupIn(BaseModel):
     name: str
 
 
-class LessonsGroupUpdate(BaseModel):
+class LessonGroupUpdate(BaseModel):
     name: str | None
 
 
-class LessonsGroupOut(BaseModel):
+class LessonGroupOut(BaseModel):
     id: int
     name: str
     record_date: datetime
-    recorder: UserOut
+    recorder_id: int
 
 
+# lessons
 class LessonIn(BaseModel):
     name: str
     lesson_group_id: int
@@ -194,11 +147,12 @@ class LessonUpdate(BaseModel):
 class LessonOut(BaseModel):
     id: int
     name: str
-    lesson_group: LessonsGroupIn
+    lesson_group_id: int
     record_date: datetime
-    recorder: UserOut
+    recorder_id: int
 
 
+# courses
 class CourseIn(BaseModel):
     name: str
     lesson_id: int
@@ -212,17 +166,18 @@ class CourseUpdate(BaseModel):
 class CourseOut(BaseModel):
     id: int
     name: str
-    lesson: LessonIn
+    lesson_id: int
     record_date: datetime
-    recorder: UserOut
+    recorder_id: int
 
 
+# course_prices
 class CoursePriceIn(BaseModel):
     course_id: int
     public_price: float
     private_price: float
-    date: datetime
-    duration: float
+    date: datetime | None = None
+    duration: float | None = None
 
 
 class CoursePriceUpdate(BaseModel):
@@ -234,15 +189,16 @@ class CoursePriceUpdate(BaseModel):
 
 class CoursePriceOut(BaseModel):
     id: int
-    course: CourseIn
+    course_id: int
     public_price: float
     private_price: float
-    date: datetime
-    duration: float
+    date: datetime | None = None
+    duration: float | None = None
     record_date: datetime
-    recorder: UserOut
+    recorder_id: int
 
 
+# course_prerequisites
 class CoursePrerequisiteIn(BaseModel):
     main_course_id: int
     prerequisite_id: int
@@ -254,13 +210,13 @@ class CoursePrerequisiteUpdate(BaseModel):
 
 
 class CoursePrerequisiteOut(BaseModel):
-    id: int
-    main_course: CourseIn
-    prerequisite: CourseIn
+    main_course_id: int
+    prerequisite_id: int
     record_date: datetime
-    recorder: UserOut
+    recorder_id: int
 
 
+# presentations
 class PresentationIn(BaseModel):
     course_id: int
     teacher_id: int
@@ -280,9 +236,10 @@ class PresentationUpdate(BaseModel):
 
 
 class PresentationOut(BaseModel):
+    id: int
     course_id: int
     teacher_id: int
-    is_private: bool
+    is_private: bool | None = False
     session_count: int
     start_date: date
     end_date: date
@@ -290,6 +247,7 @@ class PresentationOut(BaseModel):
     record_date: datetime
 
 
+# selected_presentations
 class SelectedPresentationIn(BaseModel):
     presentation_id: int
     student_id: int | None = None
@@ -305,12 +263,13 @@ class SelectedPresentationUpdate(BaseModel):
 class SelectedPresentationOut(BaseModel):
     id: int
     presentation_id: int
-    student_id: int
-    grade: float | None
+    student_id: int | None = None
+    grade: float | None = None
     recorder_id: int
     record_date: datetime
 
 
+# presentation_sessions
 class PresentationSessionIn(BaseModel):
     presentation_id: int
     classroom_id: int
@@ -330,22 +289,24 @@ class PresentationSessionUpdate(BaseModel):
 
 
 class PresentationSessionOut(BaseModel):
+    id: int
     presentation_id: int
     classroom_id: int
     start_time: datetime
     end_time: datetime
-    is_canceled: bool
-    is_extra: bool
+    is_canceled: bool | None = False
+    is_extra: bool | None = False
     recorder_id: int | None
     record_date: datetime
 
 
+# roll_calls
 class RollCallIn(BaseModel):
     presentation_session_id: int
     student_id: int
-    is_present: bool
-    delay: int
-    comment: str
+    is_present: bool | None = True
+    delay: int | None = None
+    comment: str | None = None
 
 
 class RollCallUpdate(BaseModel):
@@ -357,16 +318,16 @@ class RollCallUpdate(BaseModel):
 
 
 class RollCallOut(BaseModel):
-    id: int
-    presentation_session: PresentationSessionOut
-    student: UserOut
-    is_present: bool
-    delay: int
-    comment: str
+    presentation_session_id: int
+    student_id: int
+    is_present: bool | None = True
+    delay: int | None = None
+    comment: str | None = None
     record_date: datetime
-    recorder: UserOut
+    recorder_id: int
 
 
+# survey_categories
 class SurveyCategoryIn(BaseModel):
     name: str
 
@@ -379,9 +340,10 @@ class SurveyCategoryOut(BaseModel):
     id: int
     name: str
     record_date: datetime
-    recorder: UserOut
+    recorder_id: int
 
 
+# presentations_survey
 class PresentationSurveyIn(BaseModel):
     student_id: int
     presentation_id: int
@@ -398,14 +360,15 @@ class PresentationSurveyUpdate(BaseModel):
 
 class PresentationSurveyOut(BaseModel):
     id: int
-    student: UserOut
-    presentation: PresentationOut
-    survey_category: SurveyCategoryIn
+    student_id: int
+    presentation_id: int
+    survey_category_id: int
     score: int
-    recorder: UserOut
+    recorder_id: int
     record_date: datetime
 
 
+# selected_exams
 class SelectedExamIn(BaseModel):
     student_id: int
     exam_schedule_id: int
@@ -424,12 +387,13 @@ class SelectedExamOut(BaseModel):
     id: int
     student_id: int
     exam_schedule_id: int
-    is_participated: bool
-    grade: float | None
+    is_participated: bool | None = True
+    grade: float | None = None
     recorder_id: int
     record_date: datetime
 
 
+# financial_categories
 class FinancialCategoryIn(BaseModel):
     name: str
 
@@ -441,10 +405,11 @@ class FinancialCategoryUpdate(BaseModel):
 class FinancialCategoryOut(BaseModel):
     id: int
     name: str
-    recorder: UserOut
+    recorder_id: int
     record_date: datetime
 
 
+# pay_categories
 class PayCategoryIn(BaseModel):
     name: str
 
@@ -456,10 +421,11 @@ class PayCategoryUpdate(BaseModel):
 class PayCategoryOut(BaseModel):
     id: int
     name: str
-    recorder: UserOut
+    recorder_id: int
     record_date: datetime
 
 
+# financial_transactions
 class FinancialTransactionIn(BaseModel):
     user_id: int
     financial_category_id: int
@@ -470,21 +436,7 @@ class FinancialTransactionIn(BaseModel):
     transaction_date: datetime
     pay_reference: str
     pay_category_id: int
-
-
-class FinancialTransactionOut(BaseModel):
-    id: int
-    user: UserOut
-    financial_category: FinancialCategoryIn | None = None
-    amount: Decimal
-    presentation: PresentationOut | None = None
-    selected_presentation: SelectedPresentationOut | None = None
-    selected_exam: SelectedExamOut | None = None
-    transaction_date: datetime
-    pay_reference: str
-    pay_category: PayCategoryIn | None = None
-    recorder: UserOut
-    record_date: datetime
+    is_enabled: bool | None = True
 
 
 class FinancialTransactionUpdate(BaseModel):
@@ -497,8 +449,110 @@ class FinancialTransactionUpdate(BaseModel):
     transaction_date: datetime | None = None
     pay_reference: str | None = None
     pay_category_id: int | None = None
+    is_enabled: bool | None = None
 
 
-class LoginOut(BaseModel):
+class FinancialTransactionOut(BaseModel):
+    id: int
+    user_id: int
+    financial_category_id: int
+    amount: Decimal
+    presentation_id: int | None = None
+    selected_presentation_id: int | None = None
+    selected_exam_id: int | None = None
+    transaction_date: datetime
+    pay_reference: str
+    pay_category_id: int
+    is_enabled: bool
+    recorder_id: int
+    record_date: datetime
+
+
+# response models
+class RoleResponse(RoleOut):
+    recorder: UserOut
+
+
+class PermissionResponse(PermissionOut):
+    parent: PermissionOut
+
+
+class PermissionGroupResponse(PermissionGroupOut):
+    recorder: UserOut
+
+
+class PermissionGroupDefineResponse(PermissionGroupDefineOut):
+    permission_group: PermissionGroupOut
+    permission: PermissionOut
+    recorder: UserOut
+
+
+class UserResponse(UserOut):
+    role: RoleOut
+    permission_group: PermissionGroupOut
+    recorder: UserOut
+
+
+class LessonGroupResponse(LessonOut):
+    recorder: UserOut
+
+
+class LessonResponse(LessonOut):
+    lesson_group: LessonGroupOut
+    recorder: UserOut
+
+
+class CourseResponse(CourseOut):
+    lesson: LessonOut
+    recorder: UserOut
+
+
+class CoursePriceResponse(CoursePriceOut):
+    course: CourseResponse
+    recorder: UserOut
+
+
+class CoursePrerequisiteResponse(CoursePrerequisiteOut):
+    main_course: CourseResponse
+    prerequisite: CourseResponse
+    recorder: UserOut
+
+
+class RollCallResponse(RollCallOut):
+    student: UserOut
+    presentation_session: PresentationSessionOut
+    recorder: UserOut
+
+
+class SurveyCategoryResponse(SurveyCategoryOut):
+    recorder: UserOut
+
+
+class PresentationSurveyResponse(PresentationSurveyOut):
+    student: UserOut
+    presentation: PresentationOut
+    survey_category: SurveyCategoryOut
+    recorder: UserOut
+
+
+class FinancialCategoryResponse(FinancialCategoryOut):
+    recorder: UserOut
+
+
+class PayCategoryResponse(PayCategoryOut):
+    recorder: UserOut
+
+
+class FinancialTransactionResponse(FinancialTransactionOut):
+    user: UserOut
+    financial_category: FinancialCategoryOut
+    presentation: PresentationOut
+    selected_presentation: SelectedPresentationOut
+    selected_exam: SelectedExamOut
+    pay_category: PayCategoryOut
+    recorder: UserOut
+
+
+class LoginLogResponse(BaseModel):
     user: UserOut
     login_date: datetime

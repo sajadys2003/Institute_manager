@@ -1,15 +1,15 @@
 from inspect import currentframe
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import Depends, HTTPException, APIRouter, status
 from app.models import PayCategory
-from app.schemas import PayCategoryIn, PayCategoryOut, PayCategoryUpdate
+from app.schemas import PayCategoryIn, PayCategoryResponse, PayCategoryUpdate
 from app.dependencies import get_session, PageDep
 from sqlalchemy.orm import Session
 from datetime import datetime
 from sqlalchemy import select, and_
-from app.routers.security import CurrentUser
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from app.routers.security import CurrentUser, authorized
+from sqlalchemy.exc import IntegrityError
 
-router = APIRouter()
+router = APIRouter(prefix="/pay_categories")
 
 
 # Endpoints of pay category
@@ -17,11 +17,12 @@ router = APIRouter()
 # -------------------------------------------------------------------------------------------------------
 
 
-@router.post("/pay_category/create", tags=["pay_category"], response_model=PayCategoryOut)
+@router.post("/", tags=["pay_categories"], response_model=PayCategoryResponse)
 async def create_pay_category(
         user_auth: CurrentUser, pay_category: PayCategoryIn, db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         try:
             pay_category_dict = pay_category.model_dump()
             pay_category_dict["record_date"] = datetime.now()
@@ -32,46 +33,44 @@ async def create_pay_category(
             db.refresh(db_pay_category)
             return db_pay_category
         except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"integrity error adding pay category {e}")
-        except SQLAlchemyError as e:
-            raise HTTPException(status_code=400, detail=f"error adding pay category {e}")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e.args}")
 
 
-@router.get("/pay_category", tags=["pay_category"], response_model=list[PayCategoryOut])
+@router.get("/", tags=["pay_categories"], response_model=list[PayCategoryResponse])
 async def get_pay_categories(
         user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), search: str | None = None
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         criteria = and_(
             PayCategory.name.contains(search)
             if search else True
         )
         return db.scalars(select(PayCategory).where(criteria).limit(pagination.limit).offset(pagination.offset))
-    raise HTTPException(status_code=401, detail="Not enough permissions")
 
 
-@router.get("/pay_category/{pay_category_id}", tags=["pay_category"], response_model=PayCategoryOut)
-async def get_pay_category(
+@router.get("/{pay_category_id}", tags=["pay_categories"], response_model=PayCategoryResponse)
+async def get_pay_category_by_id(
         user_auth: CurrentUser, pay_category_id: int, db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         db_pay_category = db.scalars(
             select(PayCategory).where(PayCategory.id == pay_category_id)).first()
         if db_pay_category:
             return db_pay_category
-        raise HTTPException(status_code=404, detail="pay category not found!")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="pay category not found!")
 
 
-@router.put("/pay_category/update/{pay_category_id}", tags=["pay_category"], response_model=PayCategoryOut)
+@router.put("/{pay_category_id}", tags=["pay_categories"], response_model=PayCategoryResponse)
 async def update_pay_category(
         user_auth: CurrentUser,
         pay_category: PayCategoryUpdate,
         pay_category_id: int,
         db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         try:
             db_pay_category = db.scalars(
                 select(PayCategory).where(PayCategory.id == pay_category_id)).first()
@@ -85,17 +84,15 @@ async def update_pay_category(
             db.commit()
             return db_pay_category
         except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"integrity error updating pay category {e}")
-        except SQLAlchemyError as e:
-            raise HTTPException(status_code=400, detail=f"error updating pay category {e}")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e.args}")
 
 
-@router.delete("/pay_category/delete/{pay_category_id}", tags=["pay_category"])
+@router.delete("/{pay_category_id}", tags=["pay_categories"])
 async def delete_pay_category(
         user_auth: CurrentUser, pay_category_id: int, db: Session = Depends(get_session)
 ):
-    if user_auth.is_super_admin or currentframe().f_code.co_name in user_auth.permissions_list:
+    operation = currentframe().f_code.co_name
+    if authorized(user_auth, operation):
         try:
             db_pay_category = db.scalars(
                 select(PayCategory).where(PayCategory.id == pay_category_id)).first()
@@ -104,9 +101,6 @@ async def delete_pay_category(
                 db.commit()
                 return {"massage": f"pay category with id: {pay_category_id} successfully deleted"}
             else:
-                raise HTTPException(status_code=404, detail="pay category not found!")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="pay category not found!")
         except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"integrity error deleting pay category {e}")
-        except SQLAlchemyError as e:
-            raise HTTPException(status_code=400, detail=f"error deleting pay category {e}")
-    raise HTTPException(status_code=401, detail="Not enough permissions")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e.args}")
