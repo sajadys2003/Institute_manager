@@ -1,113 +1,165 @@
+from app.models import User
+from app.schemas import UserIn, UserUpdate, UserResponse
+from .security import get_password_hash
+
+from .security import CurrentUser, authorized
 from inspect import currentframe
-from fastapi import Depends, HTTPException, status
-from app.schemas import UserIn, UserResponse, UserUpdate
-from app.dependencies import PageDep, get_session
-from sqlalchemy.orm import Session
-from datetime import datetime
 from fastapi import APIRouter
-from sqlalchemy import select, and_, or_
-from sqlalchemy.exc import IntegrityError
-from app.routers.security import CurrentUser, get_password_hash, authorized
+from fastapi import HTTPException, status
+from sqlalchemy import and_, or_
+from app.dependencies import SessionDep, CommonsDep
+from datetime import datetime
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-router = APIRouter(prefix="/users")
-
-
-# Endpoints of users
-# add all Endpoints for user
-# -------------------------------------------------------------------------------------------------------
+router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.post("/", tags=["users"], response_model=UserResponse)
-async def create_user(user_auth: CurrentUser, user: UserIn, db: Session = Depends(get_session)):
-    operation = currentframe().f_code.co_name
-    if authorized(user_auth, operation):
-        try:
-            user_exist = db.scalars(select(
-                CurrentUser).where(CurrentUser.phone_number == user.phone_number)).first()
-            user_dict = user.model_dump()
-            user_dict["record_date"] = datetime.now()
-            user_dict["password"] = get_password_hash(user.password)
-            user_dict["recorder_id"] = user_auth.id
-            if user_exist and not user_exist.is_enabled:
-                for key, value in user_dict.items():
-                    setattr(user_exist, key, value)
-                db.commit()
-                return user_exist
-            db_user = CurrentUser(**user_dict)
-            db.add(db_user)
-            db.commit()
-            db.refresh(db_user)
-            return db_user
-        except IntegrityError as e:
-            raise HTTPException(status_code=400, detail=f"{e.args}")
+async def get_by_id(db: SessionDep, user_id: int) -> User:
+    criteria = and_(
+        User.id == user_id,
+        User.is_enabled
+    )
+    stored_record = db.query(User).where(criteria).scalar()
+    if not stored_record:
+        raise HTTPException(status_code=404, detail="Not found")
+    return stored_record
 
 
-@router.get("/", tags=["users"], response_model=list[UserResponse])
+@router.get("/", response_model=list[UserResponse])
 async def get_users(
-        user_auth: CurrentUser, pagination: PageDep, db: Session = Depends(get_session), search: str | None = None
+        db: SessionDep,
+        commons: CommonsDep,
+        current_user: CurrentUser
 ):
     operation = currentframe().f_code.co_name
-    if authorized(user_auth, operation):
-        if search:
-            criteria = and_(CurrentUser.is_enabled,
-                            or_(CurrentUser.first_name.contains(search),
-                                CurrentUser.last_name.contains(search),
-                                CurrentUser.father_name.contains(search),
-                                CurrentUser.national_code.contains(search),
-                                CurrentUser.phone_number.contains(search)))
-            return db.scalars(select(CurrentUser).where(criteria).limit(pagination.limit).offset(pagination.page))
+    if authorized(current_user, operation):
 
-
-@router.get("/{user_id}", tags=["users"], response_model=UserResponse)
-async def get_user_by_id(user_auth: CurrentUser, user_id: int, db: Session = Depends(get_session)):
-    operation = currentframe().f_code.co_name
-    if authorized(user_auth, operation):
-        db_user = db.scalars(select(CurrentUser).where(CurrentUser.id == user_id)).first()
-        if db_user:
-            return db_user
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found!")
-
-
-@router.put("/{user_id}", tags=["users"], response_model=UserResponse)
-async def update_user(
-        user_auth: CurrentUser,
-        user: UserUpdate,
-        phone_number: str,
-        db: Session = Depends(get_session)
-):
-    operation = currentframe().f_code.co_name
-    if authorized(user_auth, operation):
-        try:
-            db_user = db.scalars(select(CurrentUser).where(CurrentUser.phone_number == phone_number)).first()
-            if not db_user:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found!")
-            if db_user.phone_number != user.phone_number:
-                db_user_exist = db.scalars(select(
-                    CurrentUser).where(CurrentUser.phone_number == user.phone_number)).first()
-                if db_user_exist and not db_user_exist.is_enabled:
-                    db_user.is_enabled = False
-                    db_user = db_user_exist
-            user_dict = user.model_dump(exclude_unset=True)
-            user_dict["password"] = get_password_hash(user.password)
-            user_dict["record_date"] = datetime.now()
-            user_dict["recorder_id"] = user_auth.id
-            for key, value in user_dict.items():
-                setattr(db_user, key, value)
-            db.commit()
-            return db_user
-        except IntegrityError as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e.args}")
-
-
-@router.delete("/{user_id}", tags=["users"])
-async def delete_user(user_auth: CurrentUser, user_id: int, db: Session = Depends(get_session)):
-    operation = currentframe().f_code.co_name
-    if authorized(user_auth, operation):
-        db_user = db.scalars(select(CurrentUser).where(
-            CurrentUser.id == user_id, CurrentUser.is_enabled)).first()
-        if db_user:
-            db_user.is_enabled = False
-            db.commit()
-            return {"massage": f"user with id: {user_id} successfully deleted"}
+        if q := commons.q:
+            criteria = and_(
+                User.is_enabled,
+                or_(
+                    User.first_name.contains(q),
+                    User.last_name.contains(q),
+                    User.father_name.contains(q),
+                    User.phone_number.contains(q),
+                    User.national_code.contains(q)
+                )
+            )
         else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found!")
+            criteria = User.is_enabled
+
+        stored_records = db.query(User).where(criteria)
+        return stored_records.offset(commons.offset).limit(commons.limit).all()
+
+
+@router.get(path="/{user_id}", response_model=UserResponse)
+async def get_user(
+        db: SessionDep,
+        user_id: int,
+        current_user: CurrentUser
+):
+    operation = currentframe().f_code.co_name
+    if authorized(current_user, operation):
+        stored_record = await get_by_id(db, user_id)
+        return stored_record
+
+
+@router.post(path="/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user(
+        db: SessionDep,
+        data: UserIn,
+        current_user: CurrentUser
+):
+    operation = currentframe().f_code.co_name
+    if authorized(current_user, operation):
+
+        data_dict = data.model_dump()
+        data_dict.update(
+            {
+                "password": get_password_hash(data.password),
+                "recorder_id": current_user.id,
+                "record_date": datetime.now()
+            }
+        )
+        criteria = User.phone_number == data.phone_number
+        existing_user = db.query(User).where(criteria).scalar()
+        if existing_user:
+            if existing_user.is_enabled:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
+            else:
+                existing_user.is_enabled = True
+                try:
+                    for key, value in data_dict.items():
+                        setattr(existing_user, key, value)
+                    db.commit()
+                    return existing_user
+                except (IntegrityError, SQLAlchemyError) as e:
+                    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
+        else:
+            try:
+                new_record = User(**data_dict)
+                db.add(new_record)
+                db.commit()
+                return new_record
+            except IntegrityError as e:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
+
+
+@router.put(path="/{phone_number}", response_model=UserResponse)
+async def update_user(
+        db: SessionDep,
+        phone_number: str,
+        data: UserUpdate,
+        current_user: CurrentUser
+):
+    operation = currentframe().f_code.co_name
+    if authorized(current_user, operation):
+
+        criteria = and_(
+            User.phone_number == phone_number,
+            User.is_enabled
+        )
+        to_update = db.query(User).where(criteria).scalar()
+        if not to_update:
+            raise HTTPException(status_code=404, detail="Not found")
+
+        if password := data.password:
+            data.password = get_password_hash(password)
+
+        data_dict = data.model_dump(exclude_unset=True)
+        data_dict.update({"recorder_id": current_user.id, "record_date": datetime.now()})
+
+        if data.phone_number:
+            criteria = and_(
+                User.phone_number == data.phone_number,
+                User.phone_number != to_update.phone_number
+            )
+            existing_user = db.query(User).where(criteria).scalar()
+            if existing_user:
+                if existing_user.is_enabled:
+                    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
+                else:
+                    to_update.is_enabled = False
+                    existing_user.is_enabled = True
+                    to_update = existing_user
+
+        try:
+            for key, value in data_dict.items():
+                setattr(to_update, key, value)
+            db.commit()
+            return to_update
+        except (IntegrityError, SQLAlchemyError) as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"{e.args}")
+
+
+@router.delete(path="/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+        db: SessionDep,
+        user_id: int,
+        current_user: CurrentUser
+):
+    operation = currentframe().f_code.co_name
+    if authorized(current_user, operation):
+        stored_record = await get_by_id(db, user_id)
+        stored_record.is_enabled = False
+        db.commit()
