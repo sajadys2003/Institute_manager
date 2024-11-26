@@ -1,14 +1,8 @@
-from sqlalchemy import create_engine
-from app.models import Base
+from app.models import engine
 from sqlalchemy.orm import Session
 from typing import Annotated
 from fastapi import Depends
-
-# url = "postgresql+psycopg2://postgres:theshimmer_313@localhost:5432/test"
-url = "postgresql+psycopg2://postgres:13821382@localhost:5432/postgres"
-engine = create_engine(url)
-
-Base.metadata.create_all(bind=engine)
+from datetime import datetime, date
 
 
 def get_session():
@@ -16,7 +10,7 @@ def get_session():
         yield session
 
 
-SessionDep = Annotated[Session(engine), Depends(get_session)]
+SessionDep = Annotated[Session, Depends(get_session)]
 
 
 class Pagination:
@@ -27,3 +21,25 @@ class Pagination:
 
 
 PageDep = Annotated[Pagination, Depends(Pagination)]
+
+
+class CommonQueryParams(Pagination):
+    def __init__(self, q: str | None = None, page: int = 1, size: int = 20):
+        super().__init__(page, size)
+        self.q = f"%{q.strip()}%" if q else None
+
+
+CommonsDep = Annotated[CommonQueryParams, Depends(CommonQueryParams)]
+
+
+class DatePeriod:
+    def __init__(self, start: date | None = None, end: date | None = None):
+        self.start = start
+        self.end = end
+
+
+
+class DateTimePeriod:
+    def __init__(self, start: datetime | None = None, end: datetime | None = None):
+        self.start = start
+        self.end = end
